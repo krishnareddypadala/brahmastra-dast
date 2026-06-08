@@ -2,10 +2,13 @@
 
 **A specialized AI-powered Dynamic Application Security Testing (DAST) scanner that uses a fine-tuned 32B reasoning LLM to judge findings, cutting false positives by ~24 percentage points compared to generic models.**
 
+[![gitleaks](https://github.com/krishnareddypadala/brahmastra-dast/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/krishnareddypadala/brahmastra-dast/actions/workflows/gitleaks.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Model on HF](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-BRAHMASTRA%200.3-orange)](https://huggingface.co/Krishnapadala55/brahmastra-0.3)
 [![Benchmark Dataset](https://img.shields.io/badge/%F0%9F%93%8A%20Benchmark-6%20Suites-yellow)](https://huggingface.co/datasets/Krishnapadala55/brahmastra-benchmark)
+
+![BRAHMASTRA DAST architecture](docs/images/architecture.png)
 
 ---
 
@@ -61,6 +64,14 @@ You have two equally supported deployment paths. Pick whichever matches your env
 
 ### Path A: Cloud AI (no GPU needed)
 
+**One-line install:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/krishnareddypadala/brahmastra-dast/main/scripts/install.sh | bash
+```
+
+Or step by step:
+
 ```bash
 # 1. Install dependencies + scanner
 sudo apt install -y python3 python3-venv postgresql postgresql-contrib git
@@ -85,7 +96,15 @@ Open `http://localhost:8888`, select **Gemini 2.5 Flash** (or Claude / OpenAI) i
 
 ### Path B: Local AI (BRAHMASTRA 0.3 on Ollama)
 
-Steps 1-3 above PLUS:
+**One-line install** (after cloning the repo):
+
+```bash
+git clone https://github.com/krishnareddypadala/brahmastra-dast.git
+cd brahmastra-dast
+./scripts/install-local.sh
+```
+
+Or step by step. Steps 1-3 above PLUS:
 
 ```bash
 # 4. Install Ollama
