@@ -1,0 +1,30 @@
+# .gitleaks.toml — BRAHMASTRA DAST secret-scanner allowlist
+#
+# This file documents *known* false positives that gitleaks flags when
+# scanning the BRAHMASTRA DAST scanner. Each entry below is a security-test
+# attack signature, NOT a credential.
+
+title = "BRAHMASTRA DAST gitleaks config"
+
+# Extend the default gitleaks rules
+[extend]
+useDefault = true
+
+# Project-wide allowlist
+[allowlist]
+description = "Allow well-known public attack-pattern strings used by detection rules"
+
+# Allow these regexes anywhere in the codebase
+regexes = [
+    # alg:none JWT attack (RFC 8725, OWASP) — used by JWTAlgNoneRule
+    '''eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0\.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIn0\.''',
+    # alg:none JWT with no header at all (HS256-style guessing) — used by JWTWeakSecretRule
+    '''\.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIn0\.''',
+]
+
+# Suppress flags within attack-payload definition files
+paths = [
+    '''brahmastra/narayanastra/rules\.py''',     # attack-pattern detection rules
+    '''brahmastra/agneyastra/.*''',              # payload-generation library
+    '''tests/.*test_.*\.py''',                   # test fixtures
+]
