@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRAHMASTRA — AI-Native DAST Scanner</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:      #0b0d14;
+    --surface: #111422;
+    --border:  #1e2236;
+    --muted:   #3a3f5c;
+    --text:    #c9d1e8;
+    --accent:  #4f6ef7;
+    --green:   #22c55e;
+    --red:     #ef4444;
+    --yellow:  #f59e0b;
+    --purple:  #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono','Fira Code','Consolas',monospace; font-size: 13px; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+
+  /* Header */
+  #header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  #header .logo { display: flex; align-items: center; gap: 10px; }
+  #header .logo svg { width: 28px; height: 28px; }
+  #header .logo h1 { font-size: 17px; font-weight: 700; letter-spacing: 2px; color: #e0e8ff; }
+  #header .logo span { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  #header-right { display: flex; align-items: center; gap: 16px; }
+  #model-status { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  #model-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+  #model-dot.online { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+  #training-badge { font-size: 10px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; padding: 2px 8px; border-radius: 10px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* Layout */
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  #sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar-header { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  #sidebar-header span { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  #new-scan-btn { background: var(--accent); color: #fff; border: none; cursor: pointer; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-family: inherit; letter-spacing: 0.5px; }
+  #new-scan-btn:hover { opacity: 0.85; }
+  #scan-list { flex: 1; overflow-y: auto; }
+  .scan-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .scan-item:hover { background: rgba(79,110,247,0.08); }
+  .scan-item.active { background: rgba(79,110,247,0.15); border-left: 2px solid var(--accent); }
+  .scan-item .scan-target { color: #e0e8ff; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+  .scan-item .scan-meta { display: flex; gap: 6px; margin-top: 3px; align-items: center; flex-wrap: wrap; }
+  .scan-item .scan-id-text { font-size: 10px; color: var(--muted); }
+  .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+  .badge-critical { background: #7f1d1d; color: #fca5a5; }
+  .badge-high     { background: #78350f; color: #fcd34d; }
+  .badge-medium   { background: #1e3a5f; color: #93c5fd; }
+  .badge-low      { background: #14532d; color: #86efac; }
+  .badge-running  { background: #1e3a5f; color: #60a5fa; animation: pulse 1.5s infinite; }
+  .badge-engine   { background: rgba(167,139,250,0.15); color: #a78bfa; font-size: 9px; }
+
+  /* Content */
+  #content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); }
+  #empty-state h2 { color: #c9d1e8; font-size: 18px; }
+  #empty-state p { font-size: 12px; max-width: 320px; text-align: center; line-height: 1.6; }
+
+  /* Scan view */
+  #scan-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #scan-toolbar { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .scan-title { flex: 1; }
+  .target-url { font-size: 14px; color: #e0e8ff; }
+  .scan-meta-row { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; gap: 10px; }
+  .status-pill { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .status-running  { background: #1e3a5f; color: #60a5fa; }
+  .status-complete { background: #14532d; color: #86efac; }
+  .status-failed   { background: #450a0a; color: #f87171; }
+
+  /* Summary row */
+  #summary-row { display: flex; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .summary-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+  .summary-card .count { font-size: 22px; font-weight: 700; }
+  .summary-card .label { font-size: 10px; color: var(--muted); margin-top: 1px; letter-spacing: 1px; }
+  .card-critical .count { color: #f87171; }
+  .card-high     .count { color: #fcd34d; }
+  .card-medium   .count { color: #60a5fa; }
+  .card-low      .count { color: #4ade80; }
+  .card-requests .count { color: #a78bfa; }
+  .card-endpoints .count { color: #34d399; }
+
+  /* 4-panel grid */
+  #scan-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; overflow: hidden; gap: 0; }
+  .panel { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .panel:nth-child(2) { border-right: none; }
+  .panel:nth-child(3) { border-bottom: none; }
+  .panel:nth-child(4) { border-right: none; border-bottom: none; }
+  .panel-header { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 8px 10px; }
+  .panel-spinner { width: 8px; height: 8px; border: 1.5px solid var(--accent); border-top-color: transparent; border-radius: 50%; display: none; }
+  .panel-spinner.active { display: block; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Crawl panel */
+  .tech-chip { display: inline-block; background: rgba(79,110,247,0.15); border: 1px solid rgba(79,110,247,0.3); color: #93c5fd; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin: 2px; }
+  .endpoint-row { font-size: 11px; padding: 3px 6px; border-radius: 3px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+  .endpoint-row:hover { background: rgba(255,255,255,0.03); }
+  .method-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+  .method-GET    { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .method-POST   { background: rgba(239,68,68,0.15); color: #f87171; }
+  .method-PUT    { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .method-DELETE { background: rgba(167,139,250,0.15); color: #a78bfa; }
+
+  /* Rules panel */
+  .rule-row { padding: 5px 6px; border-radius: 4px; margin-bottom: 4px; }
+  .rule-row:hover { background: rgba(255,255,255,0.03); }
+  .rule-name { font-size: 11px; color: var(--text); display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .rule-bar-wrap { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; position: relative; }
+  .rule-bar { height: 4px; border-radius: 2px; transition: width 0.4s; }
+  .rule-bar-critical { background: #ef4444; }
+  .rule-bar-high     { background: #f59e0b; }
+  .rule-bar-medium   { background: #3b82f6; }
+  .rule-bar-low      { background: #22c55e; }
+  .rule-hits { font-size: 10px; color: #f87171; font-weight: 600; }
+  .rule-clean { font-size: 10px; color: var(--muted); }
+
+  /* Live feed */
+  .log-line { padding: 3px 8px; font-size: 11px; line-height: 1.5; display: flex; gap: 8px; }
+  .log-time { color: var(--muted); flex-shrink: 0; font-size: 10px; }
+  .log-msg { word-break: break-all; }
+  .log-info    { color: var(--text); }
+  .log-success { color: #4ade80; }
+  .log-warn    { color: #fbbf24; }
+  .log-error   { color: #f87171; }
+  .log-probe   { color: #a78bfa; font-size: 10px; }
+  .log-finding { color: #f87171; font-weight: 600; }
+  .log-phase   { color: #60a5fa; font-weight: 600; }
+  .log-crawl   { color: #34d399; font-size: 10px; }
+
+  /* Findings panel */
+  .finding-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+  .finding-card.sev-critical { border-left: 3px solid #ef4444; }
+  .finding-card.sev-high     { border-left: 3px solid #f59e0b; }
+  .finding-card.sev-medium   { border-left: 3px solid #3b82f6; }
+  .finding-card.sev-low      { border-left: 3px solid #22c55e; }
+  .finding-header { padding: 8px 10px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .finding-header:hover { background: rgba(255,255,255,0.03); }
+  .sev-badge { padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
+  .sev-CRITICAL { background: #7f1d1d; color: #fca5a5; }
+  .sev-HIGH     { background: #78350f; color: #fcd34d; }
+  .sev-MEDIUM   { background: #1e3a5f; color: #93c5fd; }
+  .sev-LOW      { background: #14532d; color: #86efac; }
+  .finding-title { flex: 1; color: #e0e8ff; font-size: 11px; font-weight: 600; }
+  .finding-cvss { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+  .source-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+  .src-rule     { background: rgba(79,110,247,0.15); color: #93c5fd; }
+  .src-ai       { background: rgba(167,139,250,0.2); color: #c4b5fd; }
+  .src-authz    { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .finding-chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+  .finding-chevron.open { transform: rotate(90deg); }
+  .finding-body { padding: 0 10px 10px; display: none; }
+  .finding-body.open { display: block; }
+  .field-row { margin-bottom: 7px; }
+  .field-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+  .field-value { font-size: 11px; color: var(--text); background: rgba(255,255,255,0.04); border-radius: 3px; padding: 4px 7px; word-break: break-all; }
+  .field-value pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; }
+  .remediation-box { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 4px; padding: 5px 8px; font-size: 11px; color: #86efac; }
+  .think-box { background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2); border-radius: 4px; padding: 5px 8px; font-size: 10px; color: #c4b5fd; line-height: 1.5; }
+  .confidence-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .confidence-bar { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; }
+  .confidence-fill { height: 100%; border-radius: 3px; }
+
+  /* Toolbar buttons */
+  .tb-btn { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  .tb-btn:hover { background: rgba(79,110,247,0.2); border-color: var(--accent); }
+
+  /* Export bar */
+  #export-row { padding: 8px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: var(--surface); }
+
+  /* Modal */
+  #modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 20px 0; overflow-y: auto; }
+  #modal-bg.open { display: flex; }
+  #modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; width: 600px; max-width: 98vw; }
+  #modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  #modal-header h2 { font-size: 15px; color: #e0e8ff; letter-spacing: 1px; }
+  #modal-close { cursor: pointer; color: var(--muted); font-size: 18px; background: none; border: none; }
+  #modal-body { padding: 16px 20px; }
+  .form-group { margin-bottom: 12px; }
+  .form-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; display: block; }
+  .form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 4px; font-size: 12px; font-family: inherit; outline: none; transition: border 0.15s; }
+  .form-input:focus { border-color: var(--accent); }
+  select.form-input { cursor: pointer; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .section-divider { border-top: 1px solid var(--border); margin: 14px 0 12px; padding-top: 12px; }
+  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  #modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  #cancel-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  #launch-btn { background: var(--accent); border: none; color: #fff; padding: 6px 18px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; }
+  #launch-btn:hover { opacity: 0.9; }
+  #launch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; }
+  .toggle-label { font-size: 11px; color: var(--text); flex: 1; }
+  .toggle-desc { font-size: 10px; color: var(--muted); }
+  input[type=checkbox] { accent-color: var(--accent); }
+  .ai-note { font-size: 10px; color: #fbbf24; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 3px; padding: 5px 8px; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M16 2L4 8v8c0 8 5.5 14 12 16 6.5-2 12-8 12-16V8L16 2z" fill="rgba(79,110,247,0.2)" stroke="#4f6ef7" stroke-width="1.5"/>
+      <path d="M11 16l3.5 3.5L21 12" stroke="#4f6ef7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>BRAHMASTRA</h1>
+      <span>AI-NATIVE DAST SCANNER v2</span>
+    </div>
+  </div>
+  <div id="header-right">
+    <span id="training-badge" style="display:none">⚡ P1 TRAINING</span>
+    <div id="model-status">
+      <div id="model-dot"></div>
+      <span id="model-label">Checking...</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span>Scans</span>
+      <button id="new-scan-btn">+ New</button>
+    </div>
+    <div id="scan-list"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div id="empty-state">
+      <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
+        <path d="M16 2L4 8v8c0 8 5.5 14 12 16 6.5-2 12-8 12-16V8L16 2z" fill="rgba(79,110,247,0.1)" stroke="#4f6ef7" stroke-width="1.5"/>
+        <path d="M11 16l3.5 3.5L21 12" stroke="#4f6ef7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h2>BRAHMASTRA</h2>
+      <p>Commercial-grade DAST scanner with 27 rule classes, Playwright SPA crawler, full AuthN (16 types), AuthZ testing, and optional AI-powered analysis.</p>
+      <button onclick="openModal()" style="background:var(--accent);color:#fff;border:none;cursor:pointer;padding:8px 20px;border-radius:5px;font-family:inherit;font-size:12px;">+ New Scan</button>
+    </div>
+
+    <!-- Scan view -->
+    <div id="scan-view" style="display:none;">
+      <!-- Toolbar -->
+      <div id="scan-toolbar">
+        <div class="scan-title">
+          <div class="target-url" id="sv-target"></div>
+          <div class="scan-meta-row">
+            <span id="sv-time"></span>
+            <span id="sv-ai-badge" style="color:#a78bfa;"></span>
+            <span id="sv-profile" style="color:var(--muted);"></span>
+          </div>
+        </div>
+        <div class="status-pill" id="sv-status"></div>
+        <button id="btn-pause"  class="tb-btn" style="display:none;" onclick="pauseScan()">⏸ Pause</button>
+        <button id="btn-resume" class="tb-btn" style="display:none;color:#4ade80;" onclick="resumeScan()">▶ Resume</button>
+        <button id="btn-stop"   class="tb-btn" style="display:none;color:#fbbf24;" onclick="stopScan()">■ Stop</button>
+        <button class="tb-btn" onclick="exportJSON()">↓ JSON</button>
+        <button class="tb-btn" onclick="exportPDF()">↓ PDF</button>
+        <button class="tb-btn" style="color:#f87171;" onclick="deleteScan()">✕</button>
+      </div>
+
+      <!-- Summary -->
+      <div id="summary-row">
+        <div class="summary-card card-critical">
+          <div class="count" id="cnt-critical">0</div>
+          <div class="label">CRITICAL</div>
+        </div>
+        <div class="summary-card card-high">
+          <div class="count" id="cnt-high">0</div>
+          <div class="label">HIGH</div>
+        </div>
+        <div class="summary-card card-medium">
+          <div class="count" id="cnt-medium">0</div>
+          <div class="label">MEDIUM</div>
+        </div>
+        <div class="summary-card card-low">
+          <div class="count" id="cnt-low">0</div>
+          <div class="label">LOW</div>
+        </div>
+        <div class="summary-card card-endpoints">
+          <div class="count" id="cnt-endpoints">0</div>
+          <div class="label">ENDPOINTS</div>
+        </div>
+        <div class="summary-card card-requests">
+          <div class="count" id="cnt-requests">0</div>
+          <div class="label">REQUESTS</div>
+        </div>
+      </div>
+
+      <!-- 4-panel body -->
+      <div id="scan-body">
+        <!-- Panel 1: Crawl -->
+        <div class="panel" id="panel-crawl">
+          <div class="panel-header">
+            <div class="panel-spinner" id="sp-crawl"></div>
+            Garudastra — Crawl
+            <span id="crawl-count" style="margin-left:auto;color:var(--accent);font-size:10px;"></span>
+          </div>
+          <div class="panel-body" id="crawl-body">
+            <div id="tech-stack-row" style="margin-bottom:8px;display:none;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">TECH STACK</div>
+              <div id="tech-chips"></div>
+            </div>
+            <div id="endpoints-list"></div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Live Feed -->
+        <div class="panel" id="panel-feed">
+          <div class="panel-header">
+            <div class="panel-spinner" id="sp-feed"></div>
+            Live Feed
+          </div>
+          <div class="panel-body" id="feed-log"></div>
+        </div>
+
+        <!-- Panel 3: Rules -->
+        <div class="panel" id="panel-rules">
+          <div class="panel-header">
+            <div class="panel-spinner" id="sp-rules"></div>
+            Narayanastra — Rules
+            <span id="rules-summary" style="margin-left:auto;font-size:10px;color:var(--muted);"></span>
+          </div>
+          <div class="panel-body" id="rules-body"></div>
+        </div>
+
+        <!-- Panel 4: Findings -->
+        <div class="panel" id="panel-findings">
+          <div class="panel-header">
+            Sudarshana — Findings
+            <span id="findings-count" style="margin-left:auto;color:var(--accent);font-size:10px;"></span>
+          </div>
+          <div class="panel-body" id="findings-list">
+            <div id="empty-findings" style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No findings yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="export-row">
+        <button class="tb-btn" onclick="exportJSON()">↓ Export JSON</button>
+        <button class="tb-btn" onclick="exportPDF()">↓ Export PDF</button>
+        <span style="flex:1;"></span>
+        <span id="scan-summary-text" style="font-size:11px;color:var(--muted);align-self:center;"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Scan Modal -->
+<div id="modal-bg">
+  <div id="modal">
+    <div id="modal-header">
+      <h2>⚔ NEW SCAN</h2>
+      <button id="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body">
+
+      <!-- Target -->
+      <div class="form-group">
+        <label class="form-label">Target URL or Import Source</label>
+        <input class="form-input" id="f-target" type="text" placeholder="http://192.168.68.58/phpvulnbank" autocomplete="off">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Source Type</label>
+          <select class="form-input" id="f-source-type" onchange="onSourceTypeChange()">
+            <option value="url">URL (Crawl)</option>
+            <option value="openapi">OpenAPI / Swagger</option>
+            <option value="har">HAR File</option>
+            <option value="burp">Burp XML</option>
+            <option value="postman">Postman Collection</option>
+            <option value="graphql">GraphQL</option>
+          </select>
+        </div>
+        <div class="form-group" id="file-upload-group" style="display:none;">
+          <label class="form-label">Upload File</label>
+          <input class="form-input" id="f-source-file" type="file" accept=".json,.yaml,.yml,.xml,.har" style="padding:5px;">
+        </div>
+      </div>
+
+      <!-- Scan settings -->
+      <div class="section-divider">
+        <div class="section-title">Scan Settings</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Scan Profile</label>
+          <select class="form-input" id="f-profile">
+            <option value="full">Full (all 27 rules)</option>
+            <option value="quick">Quick (CRITICAL only)</option>
+            <option value="stealth">Stealth (passive / low-noise)</option>
+            <option value="api_only">API Only</option>
+            <option value="auth_only">Auth / AuthZ Only</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Crawl Depth</label>
+          <select class="form-input" id="f-depth">
+            <option value="1">Depth 1 (shallow)</option>
+            <option value="2" selected>Depth 2 (default)</option>
+            <option value="3">Depth 3 (deep)</option>
+          </select>
+        </div>
+      </div>
+      <div class="toggle-row form-group">
+        <input type="checkbox" id="f-authz" checked>
+        <label for="f-authz" class="toggle-label">AuthZ Testing (IDOR + Privilege Escalation + Forced Browsing)</label>
+      </div>
+
+      <!-- Auth -->
+      <div class="section-divider">
+        <div class="section-title">Authentication</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Auth Type</label>
+        <select class="form-input" id="f-auth" onchange="toggleAuthFields()">
+          <option value="none">None</option>
+          <option value="bearer">Bearer Token / JWT</option>
+          <option value="form">Form Login</option>
+          <option value="cookie">Cookie / Session</option>
+          <option value="basic">Basic Auth</option>
+          <option value="api_key">API Key</option>
+          <option value="oauth2_cc">OAuth2 Client Credentials</option>
+          <option value="custom">Custom Header</option>
+        </select>
+      </div>
+      <!-- Bearer -->
+      <div id="auth-bearer" style="display:none;" class="form-group">
+        <label class="form-label">Bearer Token</label>
+        <input class="form-input" id="f-token" type="text" placeholder="eyJ...">
+      </div>
+      <!-- Form login -->
+      <div id="auth-form" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" id="f-username" type="text" placeholder="admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="f-password" type="password" placeholder="password">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Login URL (optional — auto-detected if blank)</label>
+          <input class="form-input" id="f-login-url" type="text" placeholder="/login">
+        </div>
+      </div>
+      <!-- Cookie -->
+      <div id="auth-cookie" style="display:none;" class="form-group">
+        <label class="form-label">Cookie String</label>
+        <input class="form-input" id="f-cookies" type="text" placeholder="PHPSESSID=abc123; token=xyz">
+      </div>
+      <!-- Basic -->
+      <div id="auth-basic" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" id="f-basic-user" type="text">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="f-basic-pass" type="password">
+          </div>
+        </div>
+      </div>
+      <!-- API Key -->
+      <div id="auth-apikey" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Key Name</label>
+            <input class="form-input" id="f-apikey-name" type="text" value="X-API-Key">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Key Value</label>
+            <input class="form-input" id="f-apikey-val" type="text">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <select class="form-input" id="f-apikey-loc">
+              <option value="header">Header</option>
+              <option value="query">Query Param</option>
+              <option value="cookie">Cookie</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- OAuth2 CC -->
+      <div id="auth-oauth2" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Client ID</label>
+            <input class="form-input" id="f-client-id" type="text">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Client Secret</label>
+            <input class="form-input" id="f-client-secret" type="text">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Token URL</label>
+          <input class="form-input" id="f-token-url" type="text" placeholder="https://auth.example.com/oauth/token">
+        </div>
+      </div>
+      <!-- Custom -->
+      <div id="auth-custom" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Header Name</label>
+            <input class="form-input" id="f-header-name" type="text" placeholder="Authorization">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Header Value</label>
+            <input class="form-input" id="f-header-value" type="text" placeholder="Bearer eyJ...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Auth for IDOR -->
+      <div class="form-group" style="margin-top:10px;">
+        <div class="toggle-row">
+          <input type="checkbox" id="f-second-auth-enable" onchange="toggleSecondAuth()">
+          <label for="f-second-auth-enable" class="toggle-label">Second Auth Config (for horizontal IDOR testing)</label>
+        </div>
+      </div>
+      <div id="second-auth-block" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">User B Token / Cookie</label>
+            <input class="form-input" id="f-second-token" type="text" placeholder="Bearer eyJ... or PHPSESSID=...">
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Mode -->
+      <div class="section-divider">
+        <div class="section-title">AI Mode</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">AI Engine</label>
+        <select class="form-input" id="f-ai-mode" onchange="onAIModeChange()">
+          <option value="disabled">Heuristic Only (No AI — GPU safe)</option>
+          <option value="brahmastra" disabled>BRAHMASTRA Fine-tuned (Training in progress...)</option>
+          <option value="gemini_flash">Gemini 2.0 Flash (Google)</option>
+          <option value="gemini_pro">Gemini 1.5 Pro (Google)</option>
+          <option value="claude_haiku">Claude Haiku (Anthropic)</option>
+          <option value="claude_sonnet">Claude Sonnet (Anthropic)</option>
+          <option value="openai">GPT-4o Mini (OpenAI)</option>
+        </select>
+        <div class="ai-note" id="ai-note" style="display:none;"></div>
+      </div>
+      <div class="form-group" id="api-key-row" style="display:none;">
+        <label class="form-label">API Key</label>
+        <input class="form-input" id="f-ext-apikey" type="password" placeholder="Paste API key — not saved to disk">
+      </div>
+
+    </div>
+    <div id="modal-footer">
+      <button id="cancel-btn" onclick="closeModal()">Cancel</button>
+      <button id="launch-btn" onclick="launchScan()">⚔ Launch Scan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentScanId = null;
+let sseSource     = null;
+let _sseRetries   = 0;
+let findingsData  = {};
+let requestCounts = {};
+let endpointCounts = {};
+let ruleStats     = {};  // rule_id → {name, severity, done, total, hits}
+let crawlEndpoints = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  checkHealth();
+  loadScans();
+  setInterval(checkHealth, 15000);
+  document.getElementById('new-scan-btn').addEventListener('click', openModal);
+  document.getElementById('modal-bg').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-bg')) closeModal();
+  });
+});
+
+// ── Health ────────────────────────────────────────────────────────────────────
+let _backends = {};
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    _backends = d.backends || {};
+    const dot   = document.getElementById('model-dot');
+    const label = document.getElementById('model-label');
+    // Check if BRAHMASTRA model is online
+    const brahmaOnline = _backends['brahmastra'] && _backends['brahmastra'].online;
+    // Show training badge if brahmastra not online
+    document.getElementById('training-badge').style.display = brahmaOnline ? 'none' : '';
+    if (brahmaOnline) {
+      // Enable brahmastra option in AI selector
+      const opt = document.querySelector('#f-ai-mode option[value="brahmastra"]');
+      if (opt) {
+        opt.disabled = false;
+        opt.textContent = 'BRAHMASTRA Fine-tuned (LOCAL)';
+      }
+    }
+    if (d.model_online) {
+      dot.classList.add('online');
+      const first = Object.values(_backends).find(b => b.online);
+      label.textContent = first ? first.label : 'Online';
+    } else {
+      dot.classList.remove('online');
+      label.textContent = 'Heuristic mode';
+    }
+  } catch {}
+}
+
+// ── Load scans ────────────────────────────────────────────────────────────────
+async function loadScans() {
+  try {
+    const r = await fetch('/api/scans');
+    const scans = await r.json();
+    renderScanList(scans);
+    if (scans.length > 0 && !currentScanId) loadScan(scans[0].id);
+  } catch {}
+}
+
+function renderScanList(scans) {
+  const list = document.getElementById('scan-list');
+  list.innerHTML = '';
+  scans.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'scan-item' + (s.id === currentScanId ? ' active' : '');
+    div.dataset.id = s.id;
+    const sum = s.summary || {};
+    const c = sum.CRITICAL || 0, h = sum.HIGH || 0;
+    const isRunning = s.status === 'running';
+    const authData = s.auth_data || {};
+    const engineMode = authData.use_engine !== false;
+    div.innerHTML = `
+      <div class="scan-target" title="${escHtml(s.target)}">${escHtml(s.target)}</div>
+      <div class="scan-meta">
+        ${isRunning ? '<span class="badge badge-running">running</span>' : ''}
+        ${c ? `<span class="badge badge-critical">${c}C</span>` : ''}
+        ${h ? `<span class="badge badge-high">${h}H</span>` : ''}
+        ${engineMode ? '<span class="badge badge-engine">ENGINE</span>' : ''}
+        <span class="scan-id-text">${s.id.slice(-8)}</span>
+      </div>`;
+    div.addEventListener('click', () => loadScan(s.id));
+    list.appendChild(div);
+  });
+}
+
+async function loadScan(scanId) {
+  currentScanId = scanId;
+  findingsData[scanId] = findingsData[scanId] || [];
+  endpointCounts[scanId] = endpointCounts[scanId] || 0;
+  ruleStats = {};
+  crawlEndpoints = [];
+
+  const r = await fetch(`/api/scans/${scanId}`);
+  const scan = await r.json();
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('scan-view').style.display    = 'flex';
+  document.getElementById('scan-view').style.flexDirection = 'column';
+
+  document.getElementById('sv-target').textContent = scan.target;
+  document.getElementById('sv-time').textContent   = scan.started_at ? new Date(scan.started_at).toLocaleString() : '';
+  const authData = scan.auth_data || {};
+  document.getElementById('sv-ai-badge').textContent  = authData.ai_mode && authData.ai_mode !== 'disabled' ? `AI: ${authData.ai_mode}` : '';
+  document.getElementById('sv-profile').textContent   = scan.scan_profile || '';
+  setStatus(scan.status);
+
+  // Reset panels
+  document.getElementById('feed-log').innerHTML        = '';
+  document.getElementById('findings-list').innerHTML   = '<div id="empty-findings" style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No findings yet</div>';
+  document.getElementById('rules-body').innerHTML      = '';
+  document.getElementById('endpoints-list').innerHTML  = '';
+  document.getElementById('tech-chips').innerHTML      = '';
+  document.getElementById('tech-stack-row').style.display = 'none';
+  document.getElementById('crawl-count').textContent   = '';
+
+  resetCounts();
+
+  // Render existing findings
+  (scan.findings || []).forEach(f => addFinding(f));
+  updateCounts();
+
+  // Update sidebar
+  document.querySelectorAll('.scan-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === scanId);
+  });
+
+  // Connect SSE if running
+  if (sseSource) { sseSource.close(); sseSource = null; }
+  if (scan.status === 'running') {
+    connectSSE(scanId);
+    showRunButtons(true);
+  } else {
+    showRunButtons(false);
+    setSpinners(false);
+  }
+}
+
+function showRunButtons(running) {
+  document.getElementById('btn-pause').style.display  = running ? '' : 'none';
+  document.getElementById('btn-resume').style.display = 'none';
+  document.getElementById('btn-stop').style.display   = running ? '' : 'none';
+}
+
+function setSpinners(active) {
+  ['sp-crawl','sp-feed','sp-rules'].forEach(id => {
+    document.getElementById(id).classList.toggle('active', active);
+  });
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function connectSSE(scanId) {
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource(`/api/scans/${scanId}/events`);
+  setSpinners(true);
+
+  const handlers = {
+    log:           onLog,
+    probe:         onProbe,
+    finding:       onFinding,
+    phase:         onPhase,
+    crawl_progress: onCrawlProgress,
+    crawl_done:    onCrawlDone,
+    rule_progress: onRuleProgress,
+    error:         onError,
+    paused:        d => { setStatus('paused'); document.getElementById('btn-resume').style.display=''; document.getElementById('btn-pause').style.display='none'; },
+    resumed:       d => { setStatus('running'); document.getElementById('btn-pause').style.display=''; document.getElementById('btn-resume').style.display='none'; },
+    done:          onDone,
+  };
+
+  Object.entries(handlers).forEach(([evt, fn]) => {
+    sseSource.addEventListener(evt, e => {
+      try { fn(JSON.parse(e.data)); } catch {}
+    });
+  });
+
+  sseSource.onerror = () => {
+    setSpinners(false);
+    if (sseSource) { sseSource.close(); sseSource = null; }
+    if (_sseRetries < 3 && currentScanId) {
+      _sseRetries++;
+      appendLog(`SSE disconnected — reconnecting (${_sseRetries}/3)...`, 'warn');
+      setTimeout(() => connectSSE(currentScanId), 3000);
+    }
+  };
+}
+
+function onLog(d) {
+  const level = d.level || 'info';
+  appendLog(d.msg || d.message || JSON.stringify(d), level);
+}
+
+function onPhase(d) {
+  appendLog(`── ${d.message || d.phase} ──`, 'phase');
+}
+
+function onProbe(d) {
+  const msg = d.rule_name
+    ? `▶ ${d.rule_name} → ${d.url ? d.url.slice(-40) : ''} [${d.parameter}] conf:${d.confidence}`
+    : `▶ ${d.method||'GET'} ${d.path||d.url||''} → ${d.param||d.parameter||''}`;
+  appendLog(msg, 'probe');
+  // Update rule stats — engine emits both 'rule_id' and 'rule' for compat
+  const rid = d.rule_id || d.rule;
+  if (rid) {
+    if (!ruleStats[rid]) {
+      ruleStats[rid] = { name: d.rule_name||rid, severity: 'HIGH', done: 0, total: 0, hits: 0 };
+    }
+    ruleStats[rid].done++;
+    renderRuleProgress();
+    _sseRetries = 0;  // receiving events → reset reconnect counter
+  }
+}
+
+function onFinding(d) {
+  addFinding(d);
+  updateCounts();
+  appendLog(`⚠ ${d.severity} — ${d.vuln_type||d.type} @ ${(d.url||'').slice(-40)} [${d.parameter||''}]`, 'finding');
+}
+
+function onCrawlProgress(d) {
+  appendLog(`↳ ${d.url || ''} (${d.status||''})`, 'crawl');
+  if (d.url) {
+    crawlEndpoints.push({ url: d.url, method: 'GET', source: 'crawl' });
+    renderEndpoints();
+  }
+  if (d.endpoints_found) document.getElementById('crawl-count').textContent = `${d.endpoints_found} found`;
+  endpointCounts[currentScanId] = d.endpoints_found || 0;
+  document.getElementById('cnt-endpoints').textContent = endpointCounts[currentScanId];
+}
+
+function onCrawlDone(d) {
+  document.getElementById('sp-crawl').classList.remove('active');
+  document.getElementById('crawl-count').textContent = `${d.endpoints_found || d.total_endpoints || 0} endpoints`;
+  appendLog(`Crawl done — ${d.endpoints_found || 0} endpoints, tech: ${(d.tech_stack||[]).join(', ')||'unknown'}`, 'success');
+  if (d.tech_stack && d.tech_stack.length) {
+    renderTechStack(d.tech_stack);
+  }
+}
+
+function onRuleProgress(d) {
+  if (!ruleStats[d.rule_id]) {
+    ruleStats[d.rule_id] = { name: d.rule_name||d.rule_id, severity: d.severity||'HIGH', done: 0, total: d.total||0, hits: 0 };
+  }
+  ruleStats[d.rule_id].done  = d.done || ruleStats[d.rule_id].done;
+  ruleStats[d.rule_id].total = d.total || ruleStats[d.rule_id].total;
+  ruleStats[d.rule_id].hits  = d.findings_count || 0;
+  ruleStats[d.rule_id].severity = d.severity || ruleStats[d.rule_id].severity;
+  renderRuleProgress();
+  const tested = Object.values(ruleStats).reduce((a,r) => a + r.done, 0);
+  const total  = Object.values(ruleStats).reduce((a,r) => a + (r.total||1), 0);
+  document.getElementById('rules-summary').textContent = `${tested}/${total} probes`;
+}
+
+function onError(d) {
+  appendLog(`ERROR: ${d.msg || d.message || JSON.stringify(d)}`, 'error');
+}
+
+function onDone(d) {
+  setSpinners(false);
+  setStatus('complete');
+  showRunButtons(false);
+  if (sseSource) { sseSource.close(); sseSource = null; }
+  appendLog(`Scan complete — ${d.findings_count||d.findings||0} findings, ${d.requests_count||d.requests||0} requests${d.duration ? ` (${d.duration})` : ''}`, 'success');
+  document.getElementById('scan-summary-text').textContent = `${d.findings_count||d.findings||0} findings in ${d.duration||''}`;
+  updateCounts();
+  loadScans();
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function appendLog(msg, level) {
+  const el = document.getElementById('feed-log');
+  const time = new Date().toLocaleTimeString('en', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div = document.createElement('div');
+  div.className = `log-line log-${level}`;
+  div.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${escHtml(String(msg))}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderTechStack(stack) {
+  document.getElementById('tech-stack-row').style.display = '';
+  document.getElementById('tech-chips').innerHTML = stack.map(t =>
+    `<span class="tech-chip">${escHtml(t)}</span>`
+  ).join('');
+}
+
+function renderEndpoints() {
+  const el = document.getElementById('endpoints-list');
+  // Show last 50 to avoid DOM bloat
+  const show = crawlEndpoints.slice(-50);
+  el.innerHTML = show.map(ep => {
+    const m = ep.method || 'GET';
+    const url = ep.url || '';
+    const path = url.length > 55 ? '…' + url.slice(-54) : url;
+    return `<div class="endpoint-row"><span class="method-badge method-${m}">${m}</span><span style="color:var(--text);font-size:10px;">${escHtml(path)}</span></div>`;
+  }).join('');
+}
+
+function renderRuleProgress() {
+  const el = document.getElementById('rules-body');
+  const rules = Object.entries(ruleStats);
+  if (!rules.length) return;
+  el.innerHTML = rules.map(([id, r]) => {
+    const pct = r.total > 0 ? Math.min(100, Math.round(r.done * 100 / r.total)) : 0;
+    const barClass = `rule-bar-${r.severity.toLowerCase()}`;
+    const hitsEl = r.hits > 0 ? `<span class="rule-hits">●${r.hits}</span>` : '<span class="rule-clean">✓</span>';
+    return `<div class="rule-row">
+      <div class="rule-name">
+        <span style="font-size:9px;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:2px;">${r.severity.slice(0,4)}</span>
+        <span style="flex:1;">${escHtml(r.name)}</span>
+        ${hitsEl}
+      </div>
+      <div class="rule-bar-wrap"><div class="rule-bar ${barClass}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function addFinding(f) {
+  const sid = currentScanId;
+  findingsData[sid] = findingsData[sid] || [];
+  findingsData[sid].push(f);
+
+  const el = document.getElementById('findings-list');
+  const empty = document.getElementById('empty-findings');
+  if (empty) empty.remove();
+
+  const sev = (f.severity || 'INFO').toUpperCase();
+  const src = f.source || '';
+  const srcBadge = src === 'ai_confirmed' || src === 'ai_agent'
+    ? '<span class="source-badge src-ai">AI</span>'
+    : src === 'authz'
+    ? '<span class="source-badge src-authz">AUTHZ</span>'
+    : '<span class="source-badge src-rule">RULE</span>';
+
+  const cvss = f.cvss ? `CVSS ${f.cvss}` : '';
+  const conf = f.confidence ? Math.round(f.confidence * 100) : null;
+  const confBar = conf !== null ? `
+    <div class="confidence-bar-wrap" style="margin-bottom:6px;">
+      <span style="font-size:10px;color:var(--muted);width:80px;">Confidence</span>
+      <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%;background:${conf>80?'#22c55e':conf>50?'#f59e0b':'#3b82f6'}"></div></div>
+      <span style="font-size:10px;color:var(--muted);">${conf}%</span>
+    </div>` : '';
+
+  const thinkSection = f.think_trace ? `
+    <div class="field-row">
+      <div class="field-label">AI Reasoning</div>
+      <div class="think-box"><pre>${escHtml(f.think_trace)}</pre></div>
+    </div>` : '';
+
+  const card = document.createElement('div');
+  card.className = `finding-card sev-${sev.toLowerCase()}`;
+  card.innerHTML = `
+    <div class="finding-header" onclick="toggleFinding(this)">
+      <span class="sev-badge sev-${sev}">${sev}</span>
+      ${srcBadge}
+      <span class="finding-title">${escHtml(f.type || f.vuln_type || 'Unknown')}</span>
+      <span class="finding-cvss">${cvss}</span>
+      <span class="finding-chevron">▶</span>
+    </div>
+    <div class="finding-body">
+      ${confBar}
+      <div class="field-row"><div class="field-label">URL</div><div class="field-value">${escHtml(f.url||'')}</div></div>
+      <div class="field-row"><div class="field-label">Parameter</div><div class="field-value">${escHtml(f.parameter||'')}</div></div>
+      <div class="field-row"><div class="field-label">Evidence</div><div class="field-value"><pre>${escHtml(f.evidence||'')}</pre></div></div>
+      ${f.payload ? `<div class="field-row"><div class="field-label">Payload</div><div class="field-value">${escHtml(f.payload)}</div></div>` : ''}
+      ${f.http_trace ? `<div class="field-row"><div class="field-label">HTTP Trace</div><div class="field-value"><pre>${escHtml(f.http_trace.slice(0,400))}</pre></div></div>` : ''}
+      ${thinkSection}
+      <div class="field-row"><div class="field-label">Remediation</div><div class="remediation-box">${escHtml(f.remediation||'')}</div></div>
+    </div>`;
+  el.appendChild(card);
+  el.scrollTop = el.scrollHeight;
+}
+
+function toggleFinding(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.finding-chevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function resetCounts() {
+  ['critical','high','medium','low','requests','endpoints'].forEach(k =>
+    document.getElementById(`cnt-${k}`).textContent = '0'
+  );
+}
+
+function updateCounts() {
+  const findings = findingsData[currentScanId] || [];
+  const c = findings.filter(f => f.severity === 'CRITICAL').length;
+  const h = findings.filter(f => f.severity === 'HIGH').length;
+  const m = findings.filter(f => f.severity === 'MEDIUM').length;
+  const l = findings.filter(f => f.severity === 'LOW').length;
+  document.getElementById('cnt-critical').textContent = c;
+  document.getElementById('cnt-high').textContent     = h;
+  document.getElementById('cnt-medium').textContent   = m;
+  document.getElementById('cnt-low').textContent      = l;
+  document.getElementById('findings-count').textContent = `${findings.length} findings`;
+}
+
+function setStatus(status) {
+  const el = document.getElementById('sv-status');
+  el.className = `status-pill status-${status}`;
+  el.textContent = status.toUpperCase();
+}
+
+// ── Scan controls ─────────────────────────────────────────────────────────────
+async function pauseScan() {
+  await fetch(`/api/scans/${currentScanId}/pause`, {method:'POST'});
+}
+async function resumeScan() {
+  await fetch(`/api/scans/${currentScanId}/resume`, {method:'POST'});
+}
+async function stopScan() {
+  await fetch(`/api/scans/${currentScanId}/stop`, {method:'POST'});
+  setSpinners(false);
+  showRunButtons(false);
+}
+async function deleteScan() {
+  if (!confirm('Delete this scan?')) return;
+  await fetch(`/api/scans/${currentScanId}`, {method:'DELETE'});
+  currentScanId = null;
+  document.getElementById('scan-view').style.display = 'none';
+  document.getElementById('empty-state').style.display = '';
+  loadScans();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal-bg').classList.add('open');
+  document.getElementById('f-target').focus();
+}
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+}
+
+function onSourceTypeChange() {
+  const type = document.getElementById('f-source-type').value;
+  document.getElementById('file-upload-group').style.display = type !== 'url' ? '' : 'none';
+}
+
+function toggleAuthFields() {
+  const t = document.getElementById('f-auth').value;
+  ['bearer','form','cookie','basic','apikey','oauth2','custom'].forEach(id => {
+    const el = document.getElementById(`auth-${id}`);
+    if (el) el.style.display = 'none';
+  });
+  if (t === 'bearer')    document.getElementById('auth-bearer').style.display = '';
+  if (t === 'form')      document.getElementById('auth-form').style.display   = '';
+  if (t === 'cookie')    document.getElementById('auth-cookie').style.display = '';
+  if (t === 'basic')     document.getElementById('auth-basic').style.display  = '';
+  if (t === 'api_key')   document.getElementById('auth-apikey').style.display = '';
+  if (t === 'oauth2_cc') document.getElementById('auth-oauth2').style.display = '';
+  if (t === 'custom')    document.getElementById('auth-custom').style.display = '';
+}
+
+function toggleSecondAuth() {
+  const en = document.getElementById('f-second-auth-enable').checked;
+  document.getElementById('second-auth-block').style.display = en ? '' : 'none';
+}
+
+function onAIModeChange() {
+  const mode = document.getElementById('f-ai-mode').value;
+  const keyRow = document.getElementById('api-key-row');
+  const note   = document.getElementById('ai-note');
+  const needsKey = ['gemini_flash','gemini_pro','claude_haiku','claude_sonnet','openai'].includes(mode);
+  keyRow.style.display = needsKey ? '' : 'none';
+  if (mode === 'disabled') {
+    note.style.display = '';
+    note.textContent = 'Heuristic-only mode. Rule engine runs standalone — no AI calls, zero GPU use.';
+  } else if (mode === 'brahmastra') {
+    note.style.display = '';
+    note.textContent = 'BRAHMASTRA fine-tuned model (localhost:11435). Runs in parallel with rule engine.';
+  } else if (needsKey) {
+    note.style.display = '';
+    note.textContent = 'External API — AI runs in parallel with rule engine. Confirms ambiguous findings.';
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+async function launchScan() {
+  const target = document.getElementById('f-target').value.trim();
+  if (!target) { alert('Enter a target URL'); return; }
+
+  const btn = document.getElementById('launch-btn');
+  btn.disabled = true;
+  btn.textContent = 'Launching...';
+
+  // Build auth config
+  const authType = document.getElementById('f-auth').value;
+  let authConfigFull = {};
+  if (authType === 'bearer') {
+    authConfigFull = { auth_type: 'bearer', token: document.getElementById('f-token').value };
+  } else if (authType === 'form') {
+    authConfigFull = {
+      auth_type:      'form',
+      username:       document.getElementById('f-username').value,
+      password:       document.getElementById('f-password').value,
+      login_url:      document.getElementById('f-login-url').value,
+    };
+  } else if (authType === 'cookie') {
+    authConfigFull = { auth_type: 'cookie', token: document.getElementById('f-cookies').value };
+  } else if (authType === 'basic') {
+    authConfigFull = {
+      auth_type: 'basic',
+      username:  document.getElementById('f-basic-user').value,
+      password:  document.getElementById('f-basic-pass').value,
+    };
+  } else if (authType === 'api_key') {
+    authConfigFull = {
+      auth_type:        'api_key',
+      api_key:          document.getElementById('f-apikey-val').value,
+      api_key_name:     document.getElementById('f-apikey-name').value,
+      api_key_location: document.getElementById('f-apikey-loc').value,
+    };
+  } else if (authType === 'oauth2_cc') {
+    authConfigFull = {
+      auth_type:     'oauth2_cc',
+      client_id:     document.getElementById('f-client-id').value,
+      client_secret: document.getElementById('f-client-secret').value,
+      token_url:     document.getElementById('f-token-url').value,
+    };
+  } else if (authType === 'custom') {
+    authConfigFull = {
+      auth_type:      'custom',
+      custom_headers: {
+        [document.getElementById('f-header-name').value]: document.getElementById('f-header-value').value
+      }
+    };
+  }
+
+  // Second auth
+  let secondAuthConfig = {};
+  if (document.getElementById('f-second-auth-enable').checked) {
+    const tok = document.getElementById('f-second-token').value.trim();
+    if (tok) {
+      secondAuthConfig = tok.startsWith('Bearer ') || tok.startsWith('bearer ')
+        ? { auth_type: 'bearer', token: tok.replace(/^bearer /i, '') }
+        : { auth_type: 'cookie', token: tok };
+    }
+  }
+
+  // Source file
+  let sourceContent = '';
+  const sourceType = document.getElementById('f-source-type').value;
+  const fileInput  = document.getElementById('f-source-file');
+  if (sourceType !== 'url' && fileInput.files.length > 0) {
+    sourceContent = await fileInput.files[0].text();
+  }
+
+  const aiMode  = document.getElementById('f-ai-mode').value;
+  const payload = {
+    target,
+    auth_type:         authType,
+    scan_profile:      document.getElementById('f-profile').value,
+    use_engine:        true,
+    ai_mode:           aiMode,
+    source_type:       sourceType,
+    source_content:    sourceContent,
+    authz_testing:     document.getElementById('f-authz').checked,
+    scan_depth:        parseInt(document.getElementById('f-depth').value),
+    auth_config_full:  authConfigFull,
+    second_auth_config: secondAuthConfig,
+    api_key:           document.getElementById('f-ext-apikey').value,
+    model_backend:     aiMode === 'disabled' ? 'heuristic' : aiMode,
+  };
+
+  try {
+    const r = await fetch('/api/scans', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    closeModal();
+    await loadScans();
+    loadScan(d.scan_id);
+  } catch(e) {
+    alert('Failed to launch scan: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚔ Launch Scan';
+  }
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportJSON() {
+  const findings = findingsData[currentScanId] || [];
+  const blob = new Blob([JSON.stringify({ scan_id: currentScanId, findings }, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `brahmastra-${currentScanId}.json`;
+  a.click();
+}
+function exportPDF() {
+  window.print();
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showScanView() {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('scan-view').style.display   = '';
+}
+</script>
+</body>
+</html>

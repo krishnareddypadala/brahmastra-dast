@@ -1,0 +1,115 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+brahmastra-env/
+*-env/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+.credentials.json
+
+# Build artefacts
+*.tar.gz
+*.zip
+*.whl
+
+# Model artefacts (way too big for git; pull from HF)
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+brahmastra-lora-*/
+brahmastra-v3-*/
+*-Modelfile
+unsloth_compiled_cache/
+_unsloth_*_temp/
+
+# Scan output
+scans/
+out/
+out_*/
+findings/
+reports/
+
+# Backup
+backup/
+*.backup
+*.bak
+
+# Database dumps
+*.sql.gz
+*-db-dump.sql
+
+# Training data
+training/data/
+training/data_raw/
+training/data_processed/
+training/data_synthetic/
+training/tools/
+darknetra-dataset/
+brahmastra-dataset/
+
+# Model dirs that should never land in source
+model/
+release_site/

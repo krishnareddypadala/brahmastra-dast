@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brahmastra DAST</title>
+<link rel="icon" type="image/png" href="/assets/brahmastra-logo.png">
+<link rel="apple-touch-icon" href="/assets/brahmastra-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#09090b;--surface:#18181b;--surface2:#27272a;--border:#3f3f46;--muted:#71717a;--text:#fafafa;--sub:#a1a1aa;
+--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--cyan:#06b6d4;--pink:#ec4899;
+--radius:10px;--radius-sm:6px}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+/* -- Header -- */
+.header{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px;letter-spacing:1px}
+.logo svg,.logo img{width:40px;height:40px;display:block;filter:drop-shadow(0 0 8px rgba(96,165,250,.45))}
+.logo span{background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:.75em;color:var(--muted)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red)}
+/* -- Main Layout -- */
+.main{display:flex;flex:1;overflow:hidden}
+/* -- Sidebar -- */
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sidebar-header span{font-size:.7em;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.btn-new{background:var(--blue);color:#fff;border:none;cursor:pointer;padding:6px 12px;border-radius:var(--radius-sm);font-size:.75em;font-weight:600;font-family:inherit}
+.btn-new:hover{opacity:.85}
+.scan-list{flex:1;overflow-y:auto;padding:4px}
+.scan-item{padding:10px 12px;cursor:pointer;border-radius:var(--radius-sm);margin-bottom:2px;transition:.15s}
+.scan-item:hover{background:rgba(59,130,246,.08)}
+.scan-item.active{background:rgba(59,130,246,.12);border-left:3px solid var(--blue)}
+.scan-item .target{font-size:.8em;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scan-item .meta{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.badge{font-size:.6em;padding:2px 6px;border-radius:4px;font-weight:600}
+.b-c{background:#7f1d1d;color:#fca5a5}.b-h{background:#78350f;color:#fcd34d}.b-m{background:#1e3a5f;color:#93c5fd}.b-l{background:#14532d;color:#86efac}
+.b-running{background:#1e3a5f;color:#60a5fa;animation:pulse 1.5s infinite}.b-complete{background:#14532d;color:#86efac}.b-failed{background:#7f1d1d;color:#fca5a5}.b-paused{background:#78350f;color:#fcd34d}.b-engine{background:rgba(139,92,246,.15);color:#a78bfa}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.scan-item .time{font-size:.6em;color:var(--muted)}
+/* -- Content -- */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* -- Workflow Tabs -- */
+.workflow-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.wtab{padding:10px 20px;font-size:.75em;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;display:flex;align-items:center;gap:6px}
+.wtab:hover{color:var(--sub)}
+.wtab.active{color:var(--text);border-color:var(--blue)}
+.wtab .step{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65em;font-weight:700}
+.wtab.active .step{background:var(--blue);border-color:var(--blue);color:#fff}
+.wtab.done .step{background:var(--green);border-color:var(--green);color:#fff}
+/* -- Tab Content -- */
+.tab-panel{display:none;flex:1;overflow-y:auto;padding:20px}
+.tab-panel.active{display:block}
+/* -- Configure Tab -- */
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.form-section h3{font-size:.85em;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.form-section h3 .num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7em}
+.form-row{display:flex;gap:12px;margin-bottom:10px}
+.form-group{flex:1}
+.form-group label{display:block;font-size:.7em;font-weight:500;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:.8em}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--blue)}
+.form-group input.big{font-size:1em;padding:12px 16px}
+.profile-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.profile-card{padding:12px;background:var(--bg);border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:.2s;text-align:center}
+.profile-card:hover{border-color:var(--blue)}
+.profile-card.selected{border-color:var(--blue);background:rgba(59,130,246,.08)}
+.profile-card .pc-name{font-size:.8em;font-weight:600;margin-bottom:4px}
+.profile-card .pc-desc{font-size:.6em;color:var(--muted)}
+.profile-card .pc-rules{font-size:.65em;color:var(--blue);margin-top:4px}
+.auth-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.auth-card{padding:10px;background:var(--bg);border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;text-align:center;transition:.2s}
+.auth-card:hover{border-color:var(--blue)}
+.auth-card.selected{border-color:var(--blue);background:rgba(59,130,246,.08)}
+.auth-card .ac-icon{font-size:1.2em;margin-bottom:4px}
+.auth-card .ac-name{font-size:.7em;font-weight:600}
+.auth-fields{display:none;margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.auth-fields.show{display:block}
+.btn-launch{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;border-radius:var(--radius);font-size:1em;font-weight:700;cursor:pointer;letter-spacing:1px;font-family:inherit}
+.btn-launch:hover{opacity:.9}
+.btn-launch:disabled{opacity:.5;cursor:not-allowed}
+/* -- Crawl Tab -- */
+.stat-row{display:flex;gap:10px;margin-bottom:16px}
+.stat-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+.stat-card .sv{font-size:1.5em;font-weight:700}.stat-card .sl{font-size:.6em;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.endpoint-table{width:100%;border-collapse:collapse}
+.endpoint-table th{font-size:.6em;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.endpoint-table td{padding:8px 12px;border-bottom:1px solid rgba(63,63,70,.5);font-size:.75em}
+.endpoint-table tr:hover{background:rgba(59,130,246,.05)}
+.method{font-size:.65em;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.m-GET{background:#14532d;color:#86efac}.m-POST{background:#1e3a5f;color:#93c5fd}.m-PUT{background:#78350f;color:#fcd34d}.m-DELETE{background:#7f1d1d;color:#fca5a5}.m-PATCH{background:rgba(139,92,246,.2);color:#c4b5fd}.m-HEAD{background:var(--surface2);color:var(--sub)}.m-OPTIONS{background:var(--surface2);color:var(--sub)}
+.param-chip{display:inline-block;font-size:.6em;padding:2px 6px;border-radius:4px;margin:1px;font-family:'JetBrains Mono',monospace}
+.param-query{background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.2)}
+.param-body{background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.2)}
+.param-path{background:rgba(245,158,11,.12);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+.param-header{background:rgba(139,92,246,.12);color:#c4b5fd;border:1px solid rgba(139,92,246,.2)}
+.source-tag{font-size:.55em;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:3px}
+.tech-chip{display:inline-block;font-size:.6em;padding:3px 8px;border-radius:4px;background:rgba(139,92,246,.12);color:#c4b5fd;border:1px solid rgba(139,92,246,.2);margin:2px}
+/* -- Scan Tab -- */
+.current-test{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.current-test .ct-label{font-size:.6em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.current-test .ct-rule{font-size:1.1em;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.current-test .ct-target{font-size:.8em;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.current-test .ct-payload{font-size:.7em;color:var(--amber);font-family:'JetBrains Mono',monospace;background:var(--bg);padding:6px 10px;border-radius:var(--radius-sm);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.current-test .ct-auth{font-size:.65em;color:var(--cyan);margin-top:6px}
+.rule-list{display:flex;flex-direction:column;gap:4px}
+.rule-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.rule-item .ri-sev{font-size:.55em;font-weight:700;padding:2px 6px;border-radius:3px;min-width:40px;text-align:center}
+.rule-item .ri-name{flex:1;font-size:.75em;font-weight:500}
+.rule-item .ri-bar{width:120px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.rule-item .ri-fill{height:100%;border-radius:2px;transition:width .3s}
+.rule-item .ri-hits{font-size:.65em;font-weight:600;min-width:40px;text-align:right}
+.ri-active{border-color:var(--amber);background:rgba(245,158,11,.05)}
+.probe-feed{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-family:'JetBrains Mono',monospace;font-size:.65em;line-height:1.8;max-height:200px;overflow-y:auto;color:var(--sub)}
+.probe-feed .pf-hit{color:var(--red)}.probe-feed .pf-clean{color:var(--green)}.probe-feed .pf-test{color:var(--amber)}
+/* -- Scan control buttons -- */
+.scan-controls{display:flex;gap:8px;margin-bottom:16px}
+.scan-controls button{padding:8px 16px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--radius-sm);font-size:.75em;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.scan-controls button:hover{border-color:var(--blue);background:rgba(59,130,246,.08)}
+.scan-controls button.btn-stop{border-color:var(--red);color:var(--red)}
+.scan-controls button.btn-stop:hover{background:rgba(239,68,68,.1)}
+/* -- Findings Tab -- */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:6px 12px;font-size:.7em;border:1px solid var(--border);background:var(--surface);color:var(--sub);border-radius:var(--radius-sm);cursor:pointer;font-family:inherit}
+.filter-btn.active{border-color:var(--blue);color:var(--text);background:rgba(59,130,246,.1)}
+.finding-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.finding-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer}
+.finding-header:hover{background:rgba(255,255,255,.02)}
+.sev{font-size:.65em;font-weight:700;padding:4px 10px;border-radius:4px;min-width:65px;text-align:center}
+.sev-CRITICAL{background:#7f1d1d;color:#fca5a5}.sev-HIGH{background:#78350f;color:#fcd34d}.sev-MEDIUM{background:#1e3a5f;color:#93c5fd}.sev-LOW{background:#14532d;color:#86efac}
+.finding-header .fh-type{flex:1;font-size:.85em;font-weight:600}
+.finding-header .fh-cvss{font-size:.7em;color:var(--muted)}
+.finding-header .fh-src{font-size:.55em;padding:2px 6px;border-radius:3px;font-weight:600}
+.src-rule{background:rgba(59,130,246,.15);color:#93c5fd}.src-ai{background:rgba(139,92,246,.15);color:#c4b5fd}.src-authz{background:rgba(245,158,11,.15);color:#fcd34d}
+.finding-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.finding-body.open{display:block}
+.fb-section{margin-top:14px}
+.fb-label{font-size:.6em;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.fb-value{font-size:.75em;color:var(--sub);line-height:1.6}
+.confidence-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.conf-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.conf-fill{height:100%;border-radius:3px}
+.conf-label{font-size:.7em;font-weight:600;min-width:35px}
+.risk-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:var(--radius-sm);padding:12px;margin-top:8px}
+.risk-box p{font-size:.75em;color:var(--sub);line-height:1.6;margin-bottom:6px}
+.risk-box strong{color:var(--text)}
+.http-block{background:#0c0c0e;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:.65em;line-height:1.7;overflow-x:auto;white-space:pre;color:var(--sub)}
+.http-block .hl{color:var(--red);font-weight:600}
+.http-label{font-size:.6em;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px;margin-top:10px}
+.think-box{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:var(--radius-sm);padding:12px;margin-top:8px;font-size:.75em;color:#c4b5fd;line-height:1.6}
+.remediation-box{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:var(--radius-sm);padding:12px;margin-top:8px;font-size:.75em;color:#86efac;line-height:1.6}
+/* -- FP analysis (post-scan false-positive verdict) -- */
+.fp-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.55em;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.fp-badge.fp-confirmed{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3)}
+.fp-badge.fp-false_positive{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.fp-badge.fp-inconclusive{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.fp-badge.fp-pending{background:rgba(120,120,140,.12);color:var(--muted);border:1px solid var(--border)}
+.finding-card.is-fp{opacity:.55}
+.finding-card.is-fp .fh-type{text-decoration:line-through;color:var(--muted)}
+.fp-detail-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.15);border-radius:var(--radius-sm);padding:12px;margin-top:8px;font-size:.72em;color:var(--sub);line-height:1.55}
+.fp-detail-box.fp-detail-confirmed{background:rgba(34,197,94,.04);border-color:rgba(34,197,94,.18)}
+.fp-detail-box.fp-detail-inconclusive{background:rgba(245,158,11,.04);border-color:rgba(245,158,11,.18)}
+.fp-detail-box .fpd-reason{color:var(--text);font-weight:600;margin-bottom:8px}
+.fp-detail-box .fpd-think{color:#c4b5fd;font-size:.9em;margin-top:8px;padding:8px;background:rgba(139,92,246,.06);border-radius:4px;white-space:pre-wrap}
+.fp-detail-box .fpd-probes{margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:.85em}
+.fp-detail-box .fpd-probe{padding:4px 8px;border-left:2px solid var(--border);margin:4px 0;color:var(--muted)}
+.fp-detail-box .fpd-probe.neg{border-left-color:#60a5fa}
+.fp-detail-box .fpd-probe.pos{border-left-color:#f87171}
+.fp-detail-box .fpd-probe.hit{color:#fca5a5}
+.fp-detail-box .fpd-probe.miss{color:#86efac}
+/* FP progress bar (live during analyzing_fp phase) */
+.fp-progress-wrap{display:none;align-items:center;gap:10px;padding:10px 14px;margin:12px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.7em;color:var(--sub)}
+.fp-progress-wrap.active{display:flex}
+.fp-progress-wrap .fpw-label{flex:0 0 auto;font-weight:600;color:var(--text)}
+.fp-progress-wrap .fpw-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.fp-progress-wrap .fpw-fill{height:100%;background:linear-gradient(90deg,#60a5fa,#a78bfa);transition:width .3s}
+.fp-progress-wrap .fpw-count{flex:0 0 auto;color:var(--muted);font-family:'JetBrains Mono',monospace}
+/* -- Report Tab -- */
+.report-header{display:flex;gap:12px;margin-bottom:20px}
+.report-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.report-card .rv{font-size:2em;font-weight:700}.report-card .rl{font-size:.65em;color:var(--muted);text-transform:uppercase;margin-top:4px}
+.export-row{display:flex;gap:10px;margin-bottom:20px}
+.export-btn{flex:1;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;transition:.2s;font-family:inherit}
+.export-btn:hover{border-color:var(--blue);background:rgba(59,130,246,.05)}
+.export-btn .eb-icon{font-size:1.5em;margin-bottom:6px}.export-btn .eb-name{font-size:.8em;font-weight:600}.export-btn .eb-desc{font-size:.6em;color:var(--muted);margin-top:2px}
+/* -- Empty states -- */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);text-align:center}
+.empty-state .es-icon{font-size:3em;margin-bottom:12px;opacity:.4}
+.empty-state .es-title{font-size:.9em;font-weight:600;margin-bottom:4px;color:var(--sub)}
+.empty-state .es-sub{font-size:.75em}
+/* -- Chat tab ---------------------------------------------------------- */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 260px);min-height:420px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.75em}
+.chat-header .ch-title{font-weight:600;color:var(--text)}
+.chat-header .ch-sub{color:var(--muted);font-size:.85em;margin-top:2px}
+.chat-header .ch-backend{padding:3px 8px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:.85em;color:var(--sub)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-messages::-webkit-scrollbar{width:6px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:.8em;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.chat-msg.user{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.assistant{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+.chat-msg.system{align-self:center;background:transparent;border:1px dashed var(--border);color:var(--muted);font-size:.7em;padding:6px 12px}
+.chat-msg .cm-ts{font-size:.65em;color:var(--muted);margin-top:4px;opacity:.7}
+.chat-msg.user .cm-ts{color:rgba(255,255,255,.75)}
+.chat-actions{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.chat-action{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:.2s;text-align:left;font-family:inherit}
+.chat-action:hover{border-color:var(--blue);background:rgba(59,130,246,.06)}
+.chat-action .ca-body{flex:1;font-size:.9em}
+.chat-action .ca-type{font-size:.7em;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.4px}
+.chat-action .ca-detail{color:var(--text);margin-top:2px;font-family:'SF Mono',Consolas,monospace;font-size:.9em}
+.chat-action .ca-reason{color:var(--muted);font-size:.8em;margin-top:2px}
+.chat-action .ca-copy{font-size:.65em;color:var(--muted);padding:2px 6px;border:1px solid var(--border);border-radius:4px;align-self:center;flex-shrink:0}
+.chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:var(--surface)}
+.chat-input-row textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:.8em;resize:none;min-height:38px;max-height:160px;line-height:1.4}
+.chat-input-row textarea:focus{outline:none;border-color:var(--blue)}
+.chat-send{padding:0 18px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.75em;font-weight:600;transition:.2s}
+.chat-send:hover:not(:disabled){background:#2563eb}
+.chat-send:disabled{opacity:.5;cursor:not-allowed}
+.chat-typing{font-size:.7em;color:var(--muted);padding:6px 14px;font-style:italic}
+.chat-empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:.8em;line-height:1.6}
+.chat-empty .ce-title{font-size:1.2em;color:var(--sub);margin-bottom:8px}
+.chat-empty .ce-hint{margin-top:12px;font-size:.85em}
+.chat-empty .ce-hint code{background:var(--surface2);padding:2px 6px;border-radius:3px;font-size:.9em}
+/* -- Responsive -- */
+@media(max-width:768px){.sidebar{width:200px}.auth-cards{grid-template-columns:repeat(2,1fr)}.profile-cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <img src="/assets/brahmastra-logo.svg" alt="Brahmastra DAST logo" width="40" height="40" onerror="this.onerror=null;this.src='/assets/brahmastra-logo.png'">
+    <span>Brahmastra DAST</span>
+  </div>
+  <div class="header-right">
+    <span class="status-dot" id="hdr-dot"></span>
+    <span id="hdr-status">Connecting...</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header"><span>Scans</span><button class="btn-new" id="btn-new-scan">+ New</button></div>
+    <div class="scan-list" id="scan-list"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- Workflow Tabs -->
+    <div class="workflow-tabs" id="workflow-tabs">
+      <div class="wtab active" data-tab="configure" onclick="showTab('configure')"><span class="step">1</span> Configure</div>
+      <div class="wtab" data-tab="crawl" onclick="showTab('crawl')"><span class="step">2</span> Crawl</div>
+      <div class="wtab" data-tab="scan" onclick="showTab('scan')"><span class="step">3</span> Scan</div>
+      <div class="wtab" data-tab="findings" onclick="showTab('findings')"><span class="step">4</span> Findings</div>
+      <div class="wtab" data-tab="report" onclick="showTab('report')"><span class="step">5</span> Report</div>
+      <div class="wtab" data-tab="chat" onclick="showTab('chat')"><span class="step">6</span> Chat</div>
+    </div>
+
+    <!-- TAB 1: CONFIGURE -->
+    <div class="tab-panel active" id="tab-configure">
+      <div class="form-section">
+        <h3><span class="num">1</span> Target</h3>
+        <div class="form-group"><label>Target URL</label><input class="big" type="url" id="cfg-target" placeholder="https://target.com"></div>
+        <div class="form-row" style="margin-top:10px">
+          <div class="form-group"><label>Source Type</label>
+            <select id="cfg-source-type">
+              <option value="url">URL (Crawl)</option>
+              <option value="openapi">OpenAPI / Swagger</option>
+              <option value="har">HAR File</option>
+              <option value="burp">Burp XML</option>
+              <option value="postman">Postman Collection</option>
+              <option value="graphql">GraphQL Introspection</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Scan Depth</label>
+            <select id="cfg-depth">
+              <option value="1">1 -- Surface (fast)</option>
+              <option value="2" selected>2 -- Moderate</option>
+              <option value="3">3 -- Deep (thorough)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="cfg-source-content-wrap" style="display:none;margin-top:10px">
+          <label>Source Content (paste spec / HAR / XML)</label>
+          <textarea id="cfg-source-content" rows="5" placeholder="Paste OpenAPI spec, HAR content, Burp XML, etc." style="font-family:'JetBrains Mono',monospace;font-size:.7em"></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3><span class="num">2</span> Authentication</h3>
+        <div class="auth-cards" id="auth-cards">
+          <div class="auth-card selected" data-auth="none"><div class="ac-icon">&#x1f513;</div><div class="ac-name">None</div></div>
+          <div class="auth-card" data-auth="basic"><div class="ac-icon">&#x1f511;</div><div class="ac-name">Basic</div></div>
+          <div class="auth-card" data-auth="bearer"><div class="ac-icon">&#x1f3ab;</div><div class="ac-name">Bearer / JWT</div></div>
+          <div class="auth-card" data-auth="form"><div class="ac-icon">&#x1f4dd;</div><div class="ac-name">Form Login</div></div>
+          <div class="auth-card" data-auth="cookie"><div class="ac-icon">&#x1f36a;</div><div class="ac-name">Cookie</div></div>
+          <div class="auth-card" data-auth="apikey"><div class="ac-icon">&#x1f510;</div><div class="ac-name">API Key</div></div>
+          <div class="auth-card" data-auth="oauth2"><div class="ac-icon">&#x1f310;</div><div class="ac-name">OAuth 2.0</div></div>
+          <div class="auth-card" data-auth="custom_header"><div class="ac-icon">&#x2699;&#xfe0f;</div><div class="ac-name">Custom Header</div></div>
+        </div>
+        <div class="auth-fields show" id="auth-fields">
+          <p style="font-size:.7em;color:var(--muted);margin-bottom:8px">No authentication -- scanning as anonymous user</p>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3><span class="num">3</span> Scan Profile</h3>
+        <div class="profile-cards" id="profile-cards">
+          <div class="profile-card selected" data-profile="full"><div class="pc-name">Full Scan</div><div class="pc-desc">All 37 rules</div><div class="pc-rules">~45 min</div></div>
+          <div class="profile-card" data-profile="quick"><div class="pc-name">Quick</div><div class="pc-desc">CRITICAL only</div><div class="pc-rules">~5 min</div></div>
+          <div class="profile-card" data-profile="stealth"><div class="pc-name">Stealth</div><div class="pc-desc">Passive + low noise</div><div class="pc-rules">~15 min</div></div>
+          <div class="profile-card" data-profile="owasp_top10"><div class="pc-name">OWASP Top 10</div><div class="pc-desc">A01-A10 coverage</div><div class="pc-rules">~20 min</div></div>
+          <div class="profile-card" data-profile="api_only"><div class="pc-name">API Only</div><div class="pc-desc">REST/GraphQL focused</div><div class="pc-rules">~10 min</div></div>
+          <div class="profile-card" data-profile="pci_dss"><div class="pc-name">PCI DSS</div><div class="pc-desc">Compliance scan</div><div class="pc-rules">~30 min</div></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3><span class="num">4</span> AI Engine</h3>
+        <div class="form-row">
+          <div class="form-group"><label>AI Mode / Model Backend</label>
+            <select id="cfg-ai-mode"></select>
+          </div>
+          <div class="form-group" id="cfg-apikey-wrap"><label>API Key (if external)</label><input type="password" id="cfg-apikey" placeholder="sk-..."></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 auto"><label style="visibility:hidden">.</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.75em;color:var(--sub)">
+              <input type="checkbox" id="cfg-authz" checked> Authorization Testing (IDOR / privesc)
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section" id="cfg-second-auth-section" style="display:none">
+        <h3><span class="num">6</span> Second Auth (for horizontal IDOR)</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Auth Type</label>
+            <select id="cfg-second-auth-type">
+              <option value="none">None</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="basic">Basic Auth</option>
+              <option value="cookie">Cookie</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Token / Credentials</label><input type="text" id="cfg-second-auth-value" placeholder="Second user token..."></div>
+        </div>
+      </div>
+
+      <button class="btn-launch" id="btn-launch">Launch Scan</button>
+    </div>
+
+    <!-- TAB 2: CRAWL -->
+    <div class="tab-panel" id="tab-crawl">
+      <div class="stat-row" id="crawl-stats">
+        <div class="stat-card"><div class="sv" id="crawl-endpoints" style="color:var(--green)">0</div><div class="sl">Endpoints</div></div>
+        <div class="stat-card"><div class="sv" id="crawl-params">0</div><div class="sl">Parameters</div></div>
+        <div class="stat-card"><div class="sv" id="crawl-duration">--</div><div class="sl">Duration</div></div>
+        <div class="stat-card"><div class="sv" id="crawl-tech" style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap"></div><div class="sl">Tech Stack</div></div>
+      </div>
+      <div id="ai-plan-panel" style="display:none;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(59,130,246,.08));border:1px solid rgba(139,92,246,.35);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:1.1em">&#x1F9E0;</span>
+          <strong style="color:#a78bfa">BRAHMASTRA Crawl Plan</strong>
+          <span id="ai-plan-meta" style="color:var(--muted);font-size:.85em"></span>
+        </div>
+        <div id="ai-plan-paths" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <!-- AUTH STATUS panel — shows what happened when auth headers were resolved -->
+      <div id="auth-status-panel" style="display:none;border-radius:var(--radius);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span id="auth-status-icon" style="font-size:1.1em">&#x1F510;</span>
+          <strong id="auth-status-title" style="color:#93c5fd">AUTHENTICATION</strong>
+          <span id="auth-status-badge" style="font-size:.7em;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:1px"></span>
+          <span id="auth-status-type" style="color:var(--muted);font-size:.8em;margin-left:auto"></span>
+        </div>
+        <div id="auth-status-message" style="color:#e2e8f0;font-size:.82em;line-height:1.5;padding:8px 10px;background:rgba(15,23,42,.5);border-radius:6px;border:1px solid rgba(100,116,139,.25);word-break:break-word"></div>
+        <div id="auth-status-detail" style="margin-top:6px;font-family:ui-monospace,monospace;font-size:.72em;color:var(--muted)"></div>
+      </div>
+      <!-- NOW CRAWLING live status card -->
+      <div id="now-crawling-panel" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(34,197,94,.06));border:1px solid rgba(59,130,246,.35);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span id="nc-spin" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#60a5fa;box-shadow:0 0 8px #60a5fa;animation:ncpulse 1s ease-in-out infinite"></span>
+          <strong style="color:#93c5fd">NOW CRAWLING</strong>
+          <span id="nc-phase" style="font-size:.7em;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.2);color:#bfdbfe;text-transform:uppercase;letter-spacing:1px">idle</span>
+          <span id="nc-counters" style="color:var(--muted);font-size:.8em;margin-left:auto">--</span>
+        </div>
+        <div id="nc-url" style="font-family:ui-monospace,monospace;font-size:.82em;color:#e2e8f0;word-break:break-all;padding:6px 10px;background:rgba(15,23,42,.5);border-radius:6px;border:1px solid rgba(59,130,246,.15)">
+          <span style="color:var(--muted)">waiting for crawler...</span>
+        </div>
+      </div>
+      <style>@keyframes ncpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}</style>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <table class="endpoint-table">
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Parameters</th><th>Source</th></tr></thead>
+          <tbody id="crawl-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: SCAN -->
+    <div class="tab-panel" id="tab-scan">
+      <div class="scan-controls" id="scan-controls">
+        <button id="btn-pause" onclick="pauseScan()">Pause</button>
+        <button id="btn-resume" onclick="resumeScan()" style="display:none">Resume</button>
+        <button class="btn-stop" id="btn-stop" onclick="stopScan()">Stop</button>
+      </div>
+      <div class="current-test" id="current-test">
+        <div class="ct-label">Currently Testing</div>
+        <div class="ct-rule" id="ct-rule"><span style="color:var(--muted)">Waiting for scan to start...</span></div>
+        <div class="ct-target" id="ct-target"></div>
+        <div class="ct-payload" id="ct-payload" style="display:none"></div>
+        <div class="ct-auth" id="ct-auth" style="display:none"></div>
+      </div>
+      <!-- AI STRATEGIST panel — shows BRAHMASTRA's live scan strategy -->
+      <div id="ai-strategy-panel" style="display:none;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(236,72,153,.06));border:1px solid rgba(168,85,247,.35);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:1.1em">&#x1F9E0;</span>
+          <strong style="color:#c084fc">BRAHMASTRA STRATEGIST</strong>
+          <span id="ai-strategy-phase" style="font-size:.7em;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,.2);color:#e9d5ff;text-transform:uppercase;letter-spacing:1px">post-crawl</span>
+          <span id="ai-strategy-meta" style="color:var(--muted);font-size:.8em;margin-left:auto"></span>
+        </div>
+        <div id="ai-strategy-reasoning" style="color:#e2e8f0;font-size:.85em;line-height:1.5;padding:8px 10px;background:rgba(15,23,42,.5);border-radius:6px;border:1px solid rgba(168,85,247,.15);margin-bottom:8px"></div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.65em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Priority Rules</div>
+            <div id="ai-strategy-rules" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.65em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Focus URLs</div>
+            <div id="ai-strategy-urls" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-row" id="scan-stats">
+        <div class="stat-card"><div class="sv" id="scan-probes" style="color:var(--amber)">0</div><div class="sl">Probes Sent</div></div>
+        <div class="stat-card"><div class="sv" id="scan-elapsed">0:00</div><div class="sl">Elapsed</div></div>
+        <div class="stat-card"><div class="sv" id="scan-findings-count">0</div><div class="sl">Findings</div></div>
+        <div class="stat-card"><div class="sv" id="scan-rps">--</div><div class="sl">Req/sec</div></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:.7em;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Rule Progress</div>
+        <div class="rule-list" id="rule-list"></div>
+      </div>
+      <div>
+        <div style="font-size:.7em;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Live Probe Feed</div>
+        <div class="probe-feed" id="probe-feed"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: FINDINGS -->
+    <div class="tab-panel" id="tab-findings">
+      <div class="filter-bar" id="filter-bar"></div>
+      <div id="findings-list"></div>
+    </div>
+
+    <!-- TAB 5: REPORT -->
+    <div class="tab-panel" id="tab-report">
+      <div class="report-header" id="report-header">
+        <div class="report-card"><div class="rv" id="rpt-crit" style="color:var(--red)">0</div><div class="rl">Critical</div></div>
+        <div class="report-card"><div class="rv" id="rpt-high" style="color:var(--amber)">0</div><div class="rl">High</div></div>
+        <div class="report-card"><div class="rv" id="rpt-med" style="color:var(--blue)">0</div><div class="rl">Medium</div></div>
+        <div class="report-card"><div class="rv" id="rpt-low" style="color:var(--green)">0</div><div class="rl">Low</div></div>
+        <div class="report-card"><div class="rv" id="rpt-score">--</div><div class="rl">Risk Score</div></div>
+      </div>
+      <div style="font-size:.75em;font-weight:600;margin-bottom:12px">Export Report</div>
+      <div class="export-row">
+        <div class="export-btn" onclick="exportReport('json')"><div class="eb-icon">&#x1f4c4;</div><div class="eb-name">JSON</div><div class="eb-desc">Machine-readable</div></div>
+        <div class="export-btn" onclick="exportReport('html')"><div class="eb-icon">&#x1f310;</div><div class="eb-name">HTML</div><div class="eb-desc">Self-contained dashboard</div></div>
+        <div class="export-btn" onclick="exportReport('pdf')"><div class="eb-icon">&#x1f4d1;</div><div class="eb-name">PDF</div><div class="eb-desc">Executive report</div></div>
+        <div class="export-btn" onclick="exportReport('sarif')"><div class="eb-icon">&#x1f517;</div><div class="eb-name">SARIF 2.1</div><div class="eb-desc">CI/CD integration</div></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px">
+        <div style="font-size:.75em;font-weight:600;margin-bottom:12px">Scan Summary</div>
+        <table style="width:100%;font-size:.75em;color:var(--sub)" id="report-summary-table">
+          <tr><td style="padding:4px 0;color:var(--muted)">Target</td><td id="rpt-target">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Profile</td><td id="rpt-profile">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Auth</td><td id="rpt-auth">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">AI Mode</td><td id="rpt-ai">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Started</td><td id="rpt-started">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Duration</td><td id="rpt-duration">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Endpoints</td><td id="rpt-endpoints">--</td></tr>
+          <tr><td style="padding:4px 0;color:var(--muted)">Requests</td><td id="rpt-requests">--</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 6: CHAT -->
+    <div class="tab-panel" id="tab-chat">
+      <div class="chat-wrap">
+        <div class="chat-header">
+          <div>
+            <div class="ch-title">AI Guidance</div>
+            <div class="ch-sub">Tell the model where to probe, which params to fuzz, or ask it to explain a finding.</div>
+          </div>
+          <div class="ch-backend" id="chat-backend">backend: --</div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-empty" id="chat-empty">
+            <div class="ce-title">No conversation yet</div>
+            <div class="ce-hint">Select a scan, then ask the AI to focus on a URL, test a parameter, or re-run a rule.</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <textarea id="chat-input" placeholder="e.g. Focus on /api/users and test id with blind SQLi payloads" rows="2"></textarea>
+          <button class="chat-send" id="chat-send" onclick="sendChatMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ===========================================================================
+   BRAHMASTRA Dashboard - Production JavaScript
+   =========================================================================== */
+
+// -- Utility ------------------------------------------------------------------
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '--';
+  var d = new Date(iso);
+  return d.toLocaleDateString('en-US', {month:'short',day:'numeric'}) + ', ' +
+         d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+}
+
+function fmtDuration(seconds) {
+  if (!seconds || seconds < 0) return '--';
+  var m = Math.floor(seconds / 60);
+  var s = Math.floor(seconds % 60);
+  if (m > 60) { var h = Math.floor(m/60); return h + 'h ' + (m%60) + 'm'; }
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+// -- Global State -------------------------------------------------------------
+
+var activeScanId = null;
+var scans = [];
+var backends = {};
+var eventSource = null;
+var currentTab = 'configure';
+
+// Per-scan live state (reset on scan switch)
+var crawlEndpoints = [];
+var crawlParamCount = 0;
+var crawlStartTime = null;
+var crawlTechStack = [];
+var ruleMap = {};
+var probeCount = 0;
+var scanStartTime = null;
+var scanFindingsCount = 0;
+var findings = [];
+var doneData = null;
+var openFindingIds = {};   // index -> true for expanded findings
+var _elapsedTimer = null;
+
+// -- Tab Navigation -----------------------------------------------------------
+
+function showTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.wtab').forEach(function(t) { t.classList.remove('active'); });
+  var el = document.getElementById('tab-' + name);
+  if (el) el.classList.add('active');
+  var tabs = ['configure','crawl','scan','findings','report','chat'];
+  var idx = tabs.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.wtab')[idx].classList.add('active');
+}
+
+function markTabDone(name) {
+  var tabs = ['configure','crawl','scan','findings','report','chat'];
+  var idx = tabs.indexOf(name);
+  if (idx >= 0) {
+    var el = document.querySelectorAll('.wtab')[idx];
+    if (!el.classList.contains('active')) el.classList.add('done');
+  }
+}
+
+function clearTabDone() {
+  document.querySelectorAll('.wtab').forEach(function(t) { t.classList.remove('done'); });
+}
+
+// -- Health Check -------------------------------------------------------------
+
+function checkHealth() {
+  fetch('/api/health').then(function(r) { return r.json(); }).then(function(data) {
+    backends = data.backends || {};
+    var dot = document.getElementById('hdr-dot');
+    var lbl = document.getElementById('hdr-status');
+    dot.className = 'status-dot' + (data.model_online ? '' : ' offline');
+    // Prefer real AI backends over the heuristic placeholder.
+    var priority = ['brahmastra', 'ollama_llama33', 'gemini_flash', 'gemini_pro',
+                    'claude_sonnet', 'claude_haiku', 'openai_gpt4o', 'heuristic'];
+    var picked = null;
+    for (var i = 0; i < priority.length; i++) {
+      var b = backends[priority[i]];
+      if (b && b.online && !b.needs_key) { picked = b; break; }
+    }
+    lbl.textContent = picked ? picked.label.split(' (')[0] + ' Online' : 'Heuristic Only';
+    populateAIModeSelect();
+  }).catch(function() {
+    document.getElementById('hdr-dot').className = 'status-dot offline';
+    document.getElementById('hdr-status').textContent = 'API Offline';
+  });
+}
+
+function populateAIModeSelect() {
+  var sel = document.getElementById('cfg-ai-mode');
+  var prev = sel.value;
+  sel.innerHTML = '';
+  for (var k in backends) {
+    var b = backends[k];
+    var opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = b.label + (b.online ? '' : ' (offline)');
+    sel.appendChild(opt);
+  }
+  if (prev) sel.value = prev;
+  // Trigger key visibility update
+  var chosen = backends[sel.value];
+  document.getElementById('cfg-apikey-wrap').style.display = (chosen && chosen.needs_key) ? '' : 'none';
+}
+
+// -- Sidebar ------------------------------------------------------------------
+
+function loadScans() {
+  return fetch('/api/scans').then(function(r) { return r.json(); }).then(function(data) {
+    scans = data;
+    renderSidebar();
+  }).catch(function() {});
+}
+
+function renderSidebar() {
+  var list = document.getElementById('scan-list');
+  list.innerHTML = '';
+  if (scans.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;font-size:.7em;color:var(--muted)">No scans yet</div>';
+    return;
+  }
+  scans.forEach(function(s) {
+    var div = document.createElement('div');
+    div.className = 'scan-item' + (s.id === activeScanId ? ' active' : '');
+    div.onclick = function() { selectScan(s.id); };
+
+    var sum = s.summary || {};
+    var c = sum.CRITICAL || 0, h = sum.HIGH || 0, m = sum.MEDIUM || 0, lo = sum.LOW || 0;
+    var statusCls = 'b-complete';
+    var statusLabel = (s.status || 'unknown').toUpperCase();
+    if (s.status === 'running') statusCls = 'b-running';
+    else if (s.status === 'failed') statusCls = 'b-failed';
+    else if (s.status === 'paused') statusCls = 'b-paused';
+
+    var badges = '<span class="badge ' + statusCls + '">' + escHtml(statusLabel) + '</span>';
+    if (c > 0) badges += '<span class="badge b-c">' + c + 'C</span>';
+    if (h > 0) badges += '<span class="badge b-h">' + h + 'H</span>';
+    if (m > 0) badges += '<span class="badge b-m">' + m + 'M</span>';
+    if (lo > 0) badges += '<span class="badge b-l">' + lo + 'L</span>';
+
+    var profileInfo = [];
+    if (s.scan_profile) profileInfo.push(s.scan_profile);
+    if (s.ai_mode && s.ai_mode !== 'disabled' && s.ai_mode !== 'heuristic') profileInfo.push(s.ai_mode);
+    if (profileInfo.length > 0) {
+      badges += '<span class="badge b-engine">' + escHtml(profileInfo.join(' ').toUpperCase()) + '</span>';
+    }
+
+    div.innerHTML =
+      '<div class="target">' + escHtml(s.target) + '</div>' +
+      '<div class="meta">' + badges + '</div>' +
+      '<div class="time">' + fmtDate(s.started_at) + (s.scan_profile ? ' &middot; ' + escHtml(s.scan_profile) : '') + '</div>';
+    list.appendChild(div);
+  });
+}
+
+// -- Scan Selection -----------------------------------------------------------
+
+function selectScan(id) {
+  activeScanId = id;
+  renderSidebar();
+  disconnectSSE();
+  resetLiveState();
+  loadChatHistory(id);
+
+  fetch('/api/scans/' + id).then(function(r) { return r.json(); }).then(function(scan) {
+    // Populate findings from scan data
+    findings = scan.findings || [];
+    renderFindings();
+    renderReport(scan);
+    var backendEl = document.getElementById('chat-backend');
+    if (backendEl) {
+      var mode = (scan.auth_data && scan.auth_data.ai_mode) || scan.ai_mode || 'brahmastra';
+      backendEl.textContent = 'backend: ' + mode;
+    }
+
+    if (scan.status === 'running' || scan.status === 'paused') {
+      // Live scan — we need the full firehose so probe/rule_progress counters update.
+      connectSSE(id, false);
+      showTab('scan');
+      if (scan.status === 'paused') {
+        document.getElementById('btn-pause').style.display = 'none';
+        document.getElementById('btn-resume').style.display = '';
+      }
+      markTabDone('configure');
+    } else if (scan.status === 'complete' || scan.status === 'done') {
+      // Reopening a finished scan: use the lightweight replay that skips
+      // probe / crawl_active / concurrency / rule_progress / finding events.
+      // Findings are already populated from /api/scans/{id}.findings above
+      // — replaying them via SSE just duplicates rows and freezes the tab.
+      connectSSE(id, true);
+      markTabDone('configure');
+      markTabDone('crawl');
+      markTabDone('scan');
+      markTabDone('findings');
+      showTab('findings');
+    } else {
+      showTab('findings');
+    }
+  }).catch(function() {});
+}
+
+function resetLiveState() {
+  crawlEndpoints = [];
+  crawlParamCount = 0;
+  crawlStartTime = null;
+  crawlTechStack = [];
+  ruleMap = {};
+  probeCount = 0;
+  scanStartTime = null;
+  scanFindingsCount = 0;
+  findings = [];
+  doneData = null;
+  openFindingIds = {};
+  // Clear any queued DOM batch from the previous scan
+  _probeQueue = [];
+  _findingQueue = [];
+  _crawlActiveLast = null;
+
+  document.getElementById('crawl-endpoints').textContent = '0';
+  document.getElementById('crawl-params').textContent = '0';
+  document.getElementById('crawl-duration').textContent = '--';
+  document.getElementById('crawl-tech').innerHTML = '';
+  document.getElementById('crawl-table-body').innerHTML = '';
+  var aiPanel = document.getElementById('ai-plan-panel');
+  if (aiPanel) {
+    aiPanel.style.display = 'none';
+    document.getElementById('ai-plan-paths').innerHTML = '';
+    document.getElementById('ai-plan-meta').textContent = '';
+  }
+  // Reset AI Strategist panel — it used to leak rules/URLs across scan switches
+  var stratPanel = document.getElementById('ai-strategy-panel');
+  if (stratPanel) {
+    stratPanel.style.display = 'none';
+    var _stratPhase = document.getElementById('ai-strategy-phase');
+    if (_stratPhase) _stratPhase.textContent = 'post-crawl';
+    var _stratMeta = document.getElementById('ai-strategy-meta');
+    if (_stratMeta) _stratMeta.textContent = '';
+    var _stratReason = document.getElementById('ai-strategy-reasoning');
+    if (_stratReason) _stratReason.textContent = '';
+    var _stratRules = document.getElementById('ai-strategy-rules');
+    if (_stratRules) _stratRules.innerHTML = '';
+    var _stratUrls = document.getElementById('ai-strategy-urls');
+    if (_stratUrls) _stratUrls.innerHTML = '';
+  }
+  aiChipByPath = {};
+  document.getElementById('rule-list').innerHTML = '';
+  document.getElementById('probe-feed').innerHTML = '';
+  document.getElementById('ct-rule').innerHTML = '<span style="color:var(--muted)">Waiting for scan to start...</span>';
+  document.getElementById('ct-target').textContent = '';
+  document.getElementById('ct-payload').style.display = 'none';
+  document.getElementById('ct-auth').style.display = 'none';
+  document.getElementById('scan-probes').textContent = '0';
+  document.getElementById('scan-elapsed').textContent = '0:00';
+  document.getElementById('scan-findings-count').textContent = '0';
+  document.getElementById('scan-rps').textContent = '--';
+  document.getElementById('btn-pause').style.display = '';
+  document.getElementById('btn-resume').style.display = 'none';
+  resetChat();
+}
+
+// -- Chat ---------------------------------------------------------------------
+
+var chatBusy = false;
+
+function resetChat() {
+  var box = document.getElementById('chat-messages');
+  if (!box) return;
+  box.innerHTML = '<div class="chat-empty" id="chat-empty">' +
+    '<div class="ce-title">No conversation yet</div>' +
+    '<div class="ce-hint">Select a scan, then ask the AI to focus on a URL, test a parameter, or re-run a rule.</div>' +
+    '</div>';
+  var input = document.getElementById('chat-input');
+  if (input) input.value = '';
+  chatBusy = false;
+  var btn = document.getElementById('chat-send');
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+}
+
+function loadChatHistory(scanId) {
+  if (!scanId) return;
+  fetch('/api/scans/' + scanId + '/chat').then(function(r) {
+    return r.ok ? r.json() : {messages: []};
+  }).then(function(data) {
+    if (scanId !== activeScanId) return;
+    var box = document.getElementById('chat-messages');
+    if (!box) return;
+    var msgs = data.messages || [];
+    if (!msgs.length) { return; }
+    box.innerHTML = '';
+    msgs.forEach(function(m) { appendChatMessage(m, false); });
+    scrollChatToBottom();
+  }).catch(function() {});
+}
+
+function scrollChatToBottom() {
+  var box = document.getElementById('chat-messages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function fmtChatTime(iso) {
+  if (!iso) return '';
+  try {
+    var d = new Date(iso);
+    return d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+  } catch(e) { return ''; }
+}
+
+function appendChatMessage(msg, scroll) {
+  var box = document.getElementById('chat-messages');
+  if (!box) return;
+  var empty = document.getElementById('chat-empty');
+  if (empty) empty.remove();
+
+  var wrap = document.createElement('div');
+  var role = msg.role || 'assistant';
+  wrap.className = 'chat-msg ' + role;
+
+  var body = document.createElement('div');
+  body.className = 'cm-body';
+  body.textContent = msg.content || '';
+  wrap.appendChild(body);
+
+  var actions = msg.suggested_actions || [];
+  if (actions.length && role === 'assistant') {
+    var actWrap = document.createElement('div');
+    actWrap.className = 'chat-actions';
+    actions.forEach(function(a) {
+      actWrap.appendChild(renderChatAction(a));
+    });
+    wrap.appendChild(actWrap);
+  }
+
+  var ts = document.createElement('div');
+  ts.className = 'cm-ts';
+  ts.textContent = fmtChatTime(msg.timestamp);
+  wrap.appendChild(ts);
+
+  box.appendChild(wrap);
+  if (scroll !== false) scrollChatToBottom();
+}
+
+function renderChatAction(action) {
+  var btn = document.createElement('div');
+  btn.className = 'chat-action';
+  var type = (action && action.type) || '';
+  var detail = '';
+  if (type === 'probe_url') {
+    detail = action.url || '';
+  } else if (type === 'test_param') {
+    detail = (action.url || '') + ' [' + (action.parameter || '') + ']';
+  } else if (type === 'run_rule') {
+    detail = action.rule || '';
+  } else if (type === 'reauth') {
+    detail = 'Re-authenticate session';
+  } else if (type === 'focus') {
+    detail = action.pattern || '';
+  } else {
+    detail = JSON.stringify(action);
+  }
+  var body = document.createElement('div');
+  body.className = 'ca-body';
+  var typeEl = document.createElement('div');
+  typeEl.className = 'ca-type';
+  typeEl.textContent = type.replace('_', ' ');
+  var detailEl = document.createElement('div');
+  detailEl.className = 'ca-detail';
+  detailEl.textContent = detail;
+  body.appendChild(typeEl);
+  body.appendChild(detailEl);
+  if (action && action.reason) {
+    var reason = document.createElement('div');
+    reason.className = 'ca-reason';
+    reason.textContent = action.reason;
+    body.appendChild(reason);
+  }
+  btn.appendChild(body);
+
+  var copy = document.createElement('div');
+  copy.className = 'ca-copy';
+  copy.textContent = 'copy';
+  btn.appendChild(copy);
+
+  btn.onclick = function() { onChatAction(action, btn); };
+  return btn;
+}
+
+function onChatAction(action, el) {
+  var text = '';
+  if (action.type === 'probe_url') text = action.url || '';
+  else if (action.type === 'test_param') text = (action.url || '') + '?' + (action.parameter || '') + '=';
+  else if (action.type === 'run_rule') text = action.rule || '';
+  else if (action.type === 'focus') text = action.pattern || '';
+  else text = JSON.stringify(action);
+  try {
+    navigator.clipboard.writeText(text);
+    if (el) {
+      var copy = el.querySelector('.ca-copy');
+      if (copy) {
+        var prev = copy.textContent;
+        copy.textContent = 'copied';
+        setTimeout(function() { copy.textContent = prev; }, 1200);
+      }
+    }
+  } catch(e) {}
+}
+
+function sendChatMessage() {
+  if (chatBusy) return;
+  if (!activeScanId) {
+    alert('Select a scan first.');
+    return;
+  }
+  var input = document.getElementById('chat-input');
+  if (!input) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+
+  // Optimistic render of user message
+  appendChatMessage({
+    role: 'user',
+    content: text,
+    timestamp: new Date().toISOString(),
+    suggested_actions: []
+  }, true);
+  input.value = '';
+
+  chatBusy = true;
+  var btn = document.getElementById('chat-send');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  // Typing indicator
+  var box = document.getElementById('chat-messages');
+  var typing = document.createElement('div');
+  typing.className = 'chat-typing';
+  typing.id = 'chat-typing-indicator';
+  typing.textContent = 'AI is thinking...';
+  if (box) { box.appendChild(typing); scrollChatToBottom(); }
+
+  var sendScanId = activeScanId;
+  fetch('/api/scans/' + sendScanId + '/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: text})
+  }).then(function(r) {
+    return r.json().then(function(d) { return {ok: r.ok, data: d}; });
+  }).then(function(res) {
+    var t = document.getElementById('chat-typing-indicator');
+    if (t) t.remove();
+    if (sendScanId !== activeScanId) return;
+    if (!res.ok) {
+      appendChatMessage({
+        role: 'system',
+        content: 'Error: ' + ((res.data && res.data.detail) || 'chat failed'),
+        timestamp: new Date().toISOString()
+      }, true);
+      return;
+    }
+    if (res.data.assistant) {
+      appendChatMessage(res.data.assistant, true);
+    }
+    if (res.data.backend) {
+      var be = document.getElementById('chat-backend');
+      if (be) be.textContent = 'backend: ' + res.data.backend;
+    }
+  }).catch(function(err) {
+    var t = document.getElementById('chat-typing-indicator');
+    if (t) t.remove();
+    appendChatMessage({
+      role: 'system',
+      content: 'Network error: ' + (err && err.message || 'unknown'),
+      timestamp: new Date().toISOString()
+    }, true);
+  }).finally(function() {
+    chatBusy = false;
+    var btn2 = document.getElementById('chat-send');
+    if (btn2) { btn2.disabled = false; btn2.textContent = 'Send'; }
+  });
+}
+
+// Enter-to-send (Shift+Enter = newline)
+document.addEventListener('DOMContentLoaded', function() {
+  var input = document.getElementById('chat-input');
+  if (input) {
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+  }
+});
+
+// -- SSE Connection -----------------------------------------------------------
+
+function connectSSE(scanId, light) {
+  disconnectSSE();
+  var url = '/api/scans/' + scanId + '/events' + (light ? '?light=true' : '');
+  eventSource = new EventSource(url);
+  scanStartTime = Date.now();
+
+  eventSource.addEventListener('phase', function(e) { handlePhase(JSON.parse(e.data)); });
+  eventSource.addEventListener('ai_plan', function(e) { handleAIPlan(JSON.parse(e.data)); });
+  eventSource.addEventListener('ai_seeds', function(e) { handleAISeeds(JSON.parse(e.data)); });
+  eventSource.addEventListener('ai_probe', function(e) { handleAIProbe(JSON.parse(e.data)); });
+  eventSource.addEventListener('ai_probe_summary', function(e) { handleAIProbeSummary(JSON.parse(e.data)); });
+  eventSource.addEventListener('crawl_progress', function(e) { handleCrawlProgress(JSON.parse(e.data)); });
+  eventSource.addEventListener('crawl_active', function(e) { handleCrawlActive(JSON.parse(e.data)); });
+  eventSource.addEventListener('crawl_done', function(e) { handleCrawlDone(JSON.parse(e.data)); });
+  eventSource.addEventListener('ai_strategy', function(e) { handleAIStrategy(JSON.parse(e.data)); });
+  eventSource.addEventListener('auth_status', function(e) { handleAuthStatus(JSON.parse(e.data)); });
+  eventSource.addEventListener('probe', function(e) { handleProbe(JSON.parse(e.data)); });
+  eventSource.addEventListener('rule_progress', function(e) { handleRuleProgress(JSON.parse(e.data)); });
+  eventSource.addEventListener('finding', function(e) { handleFinding(JSON.parse(e.data)); });
+  eventSource.addEventListener('fp_analysis_start',   function(e) { handleFPAnalysisStart(JSON.parse(e.data)); });
+  eventSource.addEventListener('fp_analysis_finding', function(e) { handleFPAnalysisFinding(JSON.parse(e.data)); });
+  eventSource.addEventListener('fp_analysis_done',    function(e) { handleFPAnalysisDone(JSON.parse(e.data)); });
+  eventSource.addEventListener('log', function(e) { handleLog(JSON.parse(e.data)); });
+  eventSource.addEventListener('error', function(e) {
+    if (e.data) { try { handleError(JSON.parse(e.data)); } catch(ex) {} }
+  });
+  eventSource.addEventListener('paused', function(e) { handlePaused(JSON.parse(e.data)); });
+  eventSource.addEventListener('resumed', function(e) { handleResumed(JSON.parse(e.data)); });
+  eventSource.addEventListener('done', function(e) { handleDone(JSON.parse(e.data)); });
+
+  // Generic message handler for untyped events
+  eventSource.onmessage = function(e) {
+    try {
+      var data = JSON.parse(e.data);
+      if (data.event === 'phase') handlePhase(data);
+      else if (data.event === 'ai_plan') handleAIPlan(data);
+      else if (data.event === 'ai_seeds') handleAISeeds(data);
+      else if (data.event === 'ai_probe') handleAIProbe(data);
+      else if (data.event === 'ai_probe_summary') handleAIProbeSummary(data);
+      else if (data.event === 'crawl_progress') handleCrawlProgress(data);
+      else if (data.event === 'crawl_active') handleCrawlActive(data);
+      else if (data.event === 'crawl_done') handleCrawlDone(data);
+      else if (data.event === 'ai_strategy') handleAIStrategy(data);
+      else if (data.event === 'auth_status') handleAuthStatus(data);
+      else if (data.event === 'probe') handleProbe(data);
+      else if (data.event === 'rule_progress') handleRuleProgress(data);
+      else if (data.event === 'finding') handleFinding(data);
+      else if (data.event === 'fp_analysis_start')   handleFPAnalysisStart(data);
+      else if (data.event === 'fp_analysis_finding') handleFPAnalysisFinding(data);
+      else if (data.event === 'fp_analysis_done')    handleFPAnalysisDone(data);
+      else if (data.event === 'log') handleLog(data);
+      else if (data.event === 'done') handleDone(data);
+      else if (data.event === 'paused') handlePaused(data);
+      else if (data.event === 'resumed') handleResumed(data);
+    } catch(ex) {}
+  };
+
+  eventSource.onerror = function() {
+    if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+      setTimeout(function() {
+        if (activeScanId === scanId) connectSSE(scanId, light);
+      }, 3000);
+    }
+  };
+
+  // Elapsed timer
+  if (_elapsedTimer) clearInterval(_elapsedTimer);
+  _elapsedTimer = setInterval(function() {
+    if (scanStartTime && !doneData) {
+      var el = (Date.now() - scanStartTime) / 1000;
+      document.getElementById('scan-elapsed').textContent = fmtDuration(el);
+      if (probeCount > 0 && el > 0) {
+        document.getElementById('scan-rps').textContent = (probeCount / el).toFixed(1) + '/s';
+      }
+    }
+  }, 1000);
+}
+
+function disconnectSSE() {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+}
+
+// -- SSE Event Handlers -------------------------------------------------------
+
+function handlePhase(d) {
+  var phase = d.phase;
+  if (phase === 'crawl') {
+    crawlStartTime = Date.now();
+    markTabDone('configure');
+    if (currentTab === 'configure') showTab('crawl');
+  } else if (phase === 'scan' || phase === 'authz') {
+    markTabDone('crawl');
+    if (currentTab === 'crawl') showTab('scan');
+  }
+}
+
+// Track chip elements by URL so probe-result events can colorize them.
+var aiChipByPath = {};
+
+function handleAIPlan(d) {
+  // Show the AI-suggested crawl paths in the Crawl tab.
+  // d = {phase, count, paths: [...], evidence: {discovered, failed_paths, forms, tech_stack}}
+  var panel = document.getElementById('ai-plan-panel');
+  var meta  = document.getElementById('ai-plan-meta');
+  var box   = document.getElementById('ai-plan-paths');
+  if (!panel || !box) return;
+  panel.style.display = '';
+  var parts = [(d.count || (d.paths || []).length) + ' paths'];
+  if (d.phase) parts.push(d.phase);
+  var ev = d.evidence || {};
+  if (ev.discovered !== undefined) {
+    parts.push('evidence: ' + ev.discovered + ' urls · ' +
+               (ev.failed_paths || 0) + ' 404s · ' +
+               (ev.forms || 0) + ' forms');
+  }
+  meta.textContent = '(' + parts.join(' · ') + ')';
+  (d.paths || []).forEach(function(p) {
+    var chip = document.createElement('span');
+    chip.className = 'tech-chip';
+    chip.style.background = 'rgba(148,163,184,.12)';
+    chip.style.color = '#cbd5e1';
+    chip.style.border = '1px solid rgba(148,163,184,.3)';
+    chip.style.fontFamily = 'ui-monospace,monospace';
+    chip.textContent = p + ' ⋯';   // pending until probe lands
+    box.appendChild(chip);
+    aiChipByPath[p] = chip;
+  });
+}
+
+function handleAISeeds(d) {
+  // Spider confirms which AI paths it accepted as seeds. Same panel.
+  var panel = document.getElementById('ai-plan-panel');
+  if (!panel) return;
+  panel.style.display = '';
+}
+
+function handleAIProbe(d) {
+  // d = {url, status, result: 'live' | 'dead' | 'error'}
+  // Find the chip by matching the path suffix of the full URL.
+  var url = d.url || '';
+  var path = '';
+  try { path = new URL(url).pathname; } catch(e) { path = url; }
+  var chip = aiChipByPath[path] || aiChipByPath[url];
+  if (!chip) return;
+  if (d.result === 'live') {
+    chip.style.background = 'rgba(34,197,94,.15)';
+    chip.style.color      = '#86efac';
+    chip.style.border     = '1px solid rgba(34,197,94,.45)';
+    chip.textContent      = path + ' · ' + d.status;
+  } else {
+    chip.style.background = 'rgba(239,68,68,.08)';
+    chip.style.color      = '#94a3b8';
+    chip.style.border     = '1px solid rgba(239,68,68,.25)';
+    chip.style.textDecoration = 'line-through';
+    chip.textContent      = path + ' · ' + (d.status || 'err');
+  }
+}
+
+function handleAIProbeSummary(d) {
+  // d = {suggested, live, dead}
+  var meta = document.getElementById('ai-plan-meta');
+  if (!meta) return;
+  var accuracy = d.suggested ? Math.round(100 * d.live / d.suggested) : 0;
+  meta.textContent += '  →  ' + d.live + '/' + d.suggested + ' live (' + accuracy + '%)';
+}
+
+function handleCrawlProgress(d) {
+  var url = d.url || '';
+  var method = (d.method || 'GET').toUpperCase();
+  var params = d.parameters || [];
+  var source = d.source || 'crawl';
+  var endpointsFound = d.endpoints_found;
+
+  // Deduplicate
+  var key = method + ' ' + url;
+  var exists = false;
+  for (var i = 0; i < crawlEndpoints.length; i++) {
+    if (crawlEndpoints[i].key === key) { exists = true; break; }
+  }
+  if (!exists) {
+    crawlEndpoints.push({key: key, url: url, method: method, params: params, source: source});
+    crawlParamCount += params.length;
+    appendCrawlRow(method, url, params, source);
+  }
+
+  document.getElementById('crawl-endpoints').textContent = endpointsFound || crawlEndpoints.length;
+  document.getElementById('crawl-params').textContent = crawlParamCount;
+  if (crawlStartTime) {
+    document.getElementById('crawl-duration').textContent = ((Date.now() - crawlStartTime) / 1000).toFixed(1) + 's';
+  }
+}
+
+// Human-readable labels for each crawl phase
+var CRAWL_PHASE_LABELS = {
+  idle:        'idle',
+  robots:      'robots.txt',
+  sitemap:     'sitemap',
+  html:        'html spider',
+  fingerprint: 'fingerprint',
+  js_extract:  'js extract',
+  fuzz:        'endpoint fuzz',
+  api_walk:    'api walk',
+  ai_walk:     'ai walk',
+  done:        'done'
+};
+
+function handleCrawlActive(d) {
+  // Only the LATEST crawl_active matters — it's a progress pulse,
+  // not an append-only event. Coalesce bursts so the Crawl panel
+  // renders once per frame instead of 50 times during replay.
+  _crawlActiveLast = d;
+  scheduleBatchFlush();
+}
+
+function _applyCrawlActive(d) {
+  // d = {phase, url, method, in_flight, discovered, failed}
+  var panel = document.getElementById('now-crawling-panel');
+  if (!panel) return;
+  panel.style.display = '';
+  var phase = d.phase || 'idle';
+  var phaseEl = document.getElementById('nc-phase');
+  if (phaseEl) phaseEl.textContent = CRAWL_PHASE_LABELS[phase] || phase;
+  var urlEl = document.getElementById('nc-url');
+  if (urlEl) {
+    var method = (d.method || 'GET').toUpperCase();
+    var methodBadge = '<span style="color:#f59e0b;font-weight:700">' + escHtml(method) + '</span> ';
+    urlEl.innerHTML = methodBadge + escHtml(d.url || '');
+  }
+  var countersEl = document.getElementById('nc-counters');
+  if (countersEl) {
+    var inFlight = d.in_flight || 0;
+    var discovered = d.discovered || 0;
+    var failed = d.failed || 0;
+    countersEl.innerHTML =
+      '<span style="color:#60a5fa">' + inFlight + '</span> in-flight \u00b7 ' +
+      '<span style="color:#86efac">' + discovered + '</span> found \u00b7 ' +
+      '<span style="color:#fca5a5">' + failed + '</span> 404';
+  }
+}
+
+function handleCrawlDone(d) {
+  document.getElementById('crawl-endpoints').textContent = d.endpoints_found || crawlEndpoints.length;
+  crawlTechStack = d.tech_stack || [];
+  var techEl = document.getElementById('crawl-tech');
+  techEl.innerHTML = '';
+  crawlTechStack.forEach(function(t) {
+    techEl.innerHTML += '<span class="tech-chip">' + escHtml(t) + '</span>';
+  });
+  if (crawlStartTime) {
+    document.getElementById('crawl-duration').textContent = ((Date.now() - crawlStartTime) / 1000).toFixed(1) + 's';
+  }
+  // Freeze the NOW CRAWLING card to show completion
+  var phaseEl = document.getElementById('nc-phase');
+  if (phaseEl) {
+    phaseEl.textContent = 'done';
+    phaseEl.style.background = 'rgba(34,197,94,.2)';
+    phaseEl.style.color = '#86efac';
+  }
+  var spinEl = document.getElementById('nc-spin');
+  if (spinEl) { spinEl.style.animation = 'none'; spinEl.style.background = '#22c55e'; spinEl.style.boxShadow = '0 0 8px #22c55e'; }
+  var urlEl = document.getElementById('nc-url');
+  if (urlEl) urlEl.innerHTML = '<span style="color:#86efac">crawl complete — ' + (d.total_endpoints || d.endpoints_found || crawlEndpoints.length) + ' endpoints discovered</span>';
+  markTabDone('crawl');
+}
+
+function handleAuthStatus(d) {
+  // d = {slot, auth_type, ok, has_cookie, header_keys, diag, message}
+  var panel = document.getElementById('auth-status-panel');
+  if (!panel) return;
+  // Only show primary for now; secondary (IDOR) also overwrites the same
+  // panel but with a "(2nd identity)" suffix in the title.
+  var ok   = !!d.ok;
+  var slot = d.slot || 'primary';
+  var type = (d.auth_type || 'none').toUpperCase();
+
+  // Hide for boring "none" auth — no signal to show
+  if (type === 'NONE') { panel.style.display = 'none'; return; }
+
+  panel.style.display = '';
+  // Colorize border/background by success
+  if (ok) {
+    panel.style.background = 'linear-gradient(135deg,rgba(34,197,94,.08),rgba(59,130,246,.06))';
+    panel.style.border     = '1px solid rgba(34,197,94,.45)';
+  } else {
+    panel.style.background = 'linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.06))';
+    panel.style.border     = '1px solid rgba(239,68,68,.50)';
+  }
+
+  var iconEl  = document.getElementById('auth-status-icon');
+  var titleEl = document.getElementById('auth-status-title');
+  var badgeEl = document.getElementById('auth-status-badge');
+  var typeEl  = document.getElementById('auth-status-type');
+  var msgEl   = document.getElementById('auth-status-message');
+  var detEl   = document.getElementById('auth-status-detail');
+
+  if (iconEl)  iconEl.innerHTML  = ok ? '&#x1F513;' : '&#x26A0;&#xFE0F;';
+  if (titleEl) {
+    titleEl.textContent = (slot === 'secondary' ? 'AUTH (2ND IDENTITY)' : 'AUTHENTICATION');
+    titleEl.style.color = ok ? '#86efac' : '#fca5a5';
+  }
+  if (badgeEl) {
+    badgeEl.textContent = ok ? 'OK' : 'FAILED';
+    badgeEl.style.background = ok ? 'rgba(34,197,94,.2)' : 'rgba(239,68,68,.2)';
+    badgeEl.style.color      = ok ? '#bbf7d0' : '#fecaca';
+  }
+  if (typeEl) typeEl.textContent = type + ' auth';
+  if (msgEl)  msgEl.textContent  = d.message || (ok ? 'Auth resolved' : 'Auth failed');
+
+  // Detail line: cookies captured, status code, final URL, field detection
+  if (detEl) {
+    var parts = [];
+    var diag = d.diag || {};
+    if (diag.status_code) parts.push('HTTP ' + diag.status_code);
+    if (diag.cookies && diag.cookies.length) parts.push('cookies: [' + diag.cookies.join(', ') + ']');
+    if (diag.csrf_fields && diag.csrf_fields.length) parts.push('csrf: [' + diag.csrf_fields.join(', ') + ']');
+    // Show auto-detected login field names when they differ from config
+    if (diag.detected_username_field && diag.detected_username_field !== diag.configured_username_field) {
+      parts.push('detected user field: ' + diag.detected_username_field +
+                 ' (you configured: ' + (diag.configured_username_field || '?') + ')');
+    }
+    if (diag.detected_password_field && diag.detected_password_field !== diag.configured_password_field) {
+      parts.push('detected pass field: ' + diag.detected_password_field +
+                 ' (you configured: ' + (diag.configured_password_field || '?') + ')');
+    }
+    if (diag.username_field && diag.password_field && !diag.detected_username_field) {
+      parts.push('fields: ' + diag.username_field + '/' + diag.password_field);
+    }
+    // ── AI self-heal ── show whether BRAHMASTRA model stepped in
+    var ah = diag.ai_self_heal;
+    if (ah && ah.attempted) {
+      var verdict;
+      if (ah.retry_ok) {
+        verdict = 'AI self-heal OK (' + (ah.fix_type || '?') + ')';
+      } else if (ah.requires_human) {
+        verdict = 'AI self-heal: human needed';
+      } else if (ah.fix_type && ah.fix_type !== 'none' && ah.fix_type !== 'pending') {
+        verdict = 'AI self-heal failed (' + ah.fix_type + ')';
+      } else {
+        verdict = 'AI self-heal: no actionable fix';
+      }
+      if (typeof ah.confidence === 'number') {
+        verdict += ' ' + Math.round(ah.confidence * 100) + '%';
+      }
+      parts.push(verdict);
+      if (ah.diagnosis) parts.push('AI says: ' + ah.diagnosis);
+      if (ah.retry_cookies && ah.retry_cookies.length) {
+        parts.push('AI retry cookies: [' + ah.retry_cookies.join(', ') + ']');
+      }
+    }
+    if (diag.final_url) parts.push('final: ' + diag.final_url);
+    if (d.header_keys && d.header_keys.length) parts.push('headers: ' + d.header_keys.join(', '));
+    detEl.textContent = parts.join('   \u2022   ');
+  }
+}
+
+function handleAIStrategy(d) {
+  // d = {phase, priority_rules, focus_urls, reasoning, confidence, [findings_count]}
+  var panel = document.getElementById('ai-strategy-panel');
+  if (!panel) return;
+  panel.style.display = '';
+  var phaseEl = document.getElementById('ai-strategy-phase');
+  if (phaseEl) phaseEl.textContent = d.phase || 'post-crawl';
+  var metaEl = document.getElementById('ai-strategy-meta');
+  if (metaEl) {
+    var bits = [];
+    if (typeof d.confidence === 'number') {
+      bits.push(Math.round(d.confidence * 100) + '% confidence');
+    }
+    if (d.findings_count) {
+      bits.push('at ' + d.findings_count + ' findings');
+    }
+    metaEl.textContent = bits.join(' · ');
+  }
+  var reasoningEl = document.getElementById('ai-strategy-reasoning');
+  if (reasoningEl) {
+    reasoningEl.textContent = d.reasoning || '(no reasoning provided)';
+  }
+  var rulesEl = document.getElementById('ai-strategy-rules');
+  if (rulesEl) {
+    rulesEl.innerHTML = '';
+    (d.priority_rules || []).slice(0, 12).forEach(function(r, i) {
+      var chip = document.createElement('span');
+      chip.className = 'tech-chip';
+      chip.style.background = i < 3 ? 'rgba(168,85,247,.25)' : 'rgba(148,163,184,.12)';
+      chip.style.color = i < 3 ? '#e9d5ff' : '#cbd5e1';
+      chip.style.border = '1px solid rgba(168,85,247,.3)';
+      chip.textContent = (i + 1) + '. ' + r;
+      rulesEl.appendChild(chip);
+    });
+  }
+  var urlsEl = document.getElementById('ai-strategy-urls');
+  if (urlsEl) {
+    urlsEl.innerHTML = '';
+    (d.focus_urls || []).slice(0, 10).forEach(function(u) {
+      var chip = document.createElement('span');
+      chip.className = 'tech-chip';
+      chip.style.background = 'rgba(59,130,246,.15)';
+      chip.style.color = '#bfdbfe';
+      chip.style.border = '1px solid rgba(59,130,246,.3)';
+      chip.style.fontFamily = 'ui-monospace,monospace';
+      chip.style.fontSize = '.75em';
+      chip.textContent = u;
+      urlsEl.appendChild(chip);
+    });
+  }
+}
+
+// -- Batched DOM update pipeline ----------------------------------------------
+// Events can arrive in bursts of hundreds (especially during replay of a
+// completed scan, or during a high-concurrency active fuzz phase). Mutating
+// the DOM synchronously for every event freezes the main thread — the user
+// sees a "Page Unresponsive" dialog. We coalesce bursts into a single
+// requestAnimationFrame flush so the browser only reflows once per frame.
+var _probeQueue = [];
+var _findingQueue = [];
+var _crawlActiveLast = null;
+var _batchScheduled = false;
+var _sidebarRefreshPending = false;
+var PROBE_FEED_CAP = 800;   // hard cap on probe-feed children — keeps DOM size bounded
+
+function scheduleBatchFlush() {
+  if (_batchScheduled) return;
+  _batchScheduled = true;
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(flushBatchedUpdates);
+  } else {
+    setTimeout(flushBatchedUpdates, 16);
+  }
+}
+
+function flushBatchedUpdates() {
+  _batchScheduled = false;
+
+  // ── Probes ──────────────────────────────────────────────────────────────
+  if (_probeQueue.length) {
+    var probes = _probeQueue;
+    _probeQueue = [];
+    probeCount += probes.length;
+    document.getElementById('scan-probes').textContent = probeCount.toLocaleString();
+
+    // Update currently-testing banner from the MOST RECENT probe only
+    // (no point rendering 200 intermediate banners in one frame).
+    for (var i = probes.length - 1; i >= 0; i--) {
+      var last = probes[i];
+      if (last.rule_name || last.rule_id) {
+        var sevClass = 'sev-' + (last.severity || 'MEDIUM').toUpperCase();
+        document.getElementById('ct-rule').innerHTML =
+          '<span class="sev ' + sevClass + '" style="font-size:.6em">' + escHtml((last.severity || '').toUpperCase()) + '</span> ' +
+          escHtml(last.rule_name || last.rule_id);
+        document.getElementById('ct-target').textContent =
+          (last.url || '') + (last.parameter ? ' [' + last.parameter + ']' : '');
+        if (last.payload) {
+          document.getElementById('ct-payload').textContent = 'Payload: ' + last.payload;
+          document.getElementById('ct-payload').style.display = '';
+        }
+        break;
+      }
+    }
+
+    // Append probe rows in a single DocumentFragment reflow
+    var feed = document.getElementById('probe-feed');
+    if (feed) {
+      var frag = document.createDocumentFragment();
+      for (var j = 0; j < probes.length; j++) {
+        var p = probes[j];
+        var span = document.createElement('span');
+        var cls = 'pf-test';
+        var prefix = '\u25b6 ';
+        var suffix = 'testing...';
+        if (p.confidence != null && p.confidence > 0.5) {
+          cls = 'pf-hit';
+          prefix = '\u25cf ';
+          suffix = 'conf:' + Number(p.confidence).toFixed(2) + ' -- FINDING';
+        }
+        span.className = cls;
+        span.textContent = prefix + (p.rule_name || p.rule_id || '') + ' \u2192 ' +
+          (p.url || '') + ' [' + (p.parameter || '') + '] ' + suffix;
+        frag.appendChild(span);
+        frag.appendChild(document.createTextNode('\n'));
+      }
+      feed.appendChild(frag);
+      // Cap DOM size — drop oldest children beyond PROBE_FEED_CAP
+      while (feed.childNodes.length > PROBE_FEED_CAP) {
+        feed.removeChild(feed.firstChild);
+      }
+      feed.scrollTop = feed.scrollHeight;
+    }
+  }
+
+  // ── Findings ────────────────────────────────────────────────────────────
+  if (_findingQueue.length) {
+    var newFindings = _findingQueue;
+    _findingQueue = [];
+    scanFindingsCount += newFindings.length;
+    document.getElementById('scan-findings-count').textContent = scanFindingsCount;
+    for (var k = 0; k < newFindings.length; k++) findings.push(newFindings[k]);
+    // ONE renderFindings() per frame — not one per finding (was O(n²))
+    renderFindings();
+    renderReportCounts();
+    // Append hit rows to probe feed for each new finding
+    var feed2 = document.getElementById('probe-feed');
+    if (feed2) {
+      var frag2 = document.createDocumentFragment();
+      for (var m = 0; m < newFindings.length; m++) {
+        var fnd = newFindings[m];
+        var sp2 = document.createElement('span');
+        sp2.className = 'pf-hit';
+        var conf = fnd.confidence || 0;
+        if (conf > 1) conf = conf / 100;
+        sp2.textContent = '\u25cf ' + (fnd.vuln_type || fnd.type || '') + ' \u2192 ' +
+          (fnd.url || '') + ' [' + (fnd.parameter || '') + '] conf:' + Number(conf).toFixed(2) + ' -- FINDING';
+        frag2.appendChild(sp2);
+        frag2.appendChild(document.createTextNode('\n'));
+      }
+      feed2.appendChild(frag2);
+      while (feed2.childNodes.length > PROBE_FEED_CAP) feed2.removeChild(feed2.firstChild);
+      feed2.scrollTop = feed2.scrollHeight;
+    }
+    // Throttle sidebar refresh to at most every 2s instead of on every finding
+    scheduleSidebarRefresh();
+  }
+
+  // ── Crawl active (keep only the most recent) ───────────────────────────
+  if (_crawlActiveLast) {
+    var ca = _crawlActiveLast;
+    _crawlActiveLast = null;
+    _applyCrawlActive(ca);
+  }
+}
+
+function scheduleSidebarRefresh() {
+  if (_sidebarRefreshPending) return;
+  _sidebarRefreshPending = true;
+  setTimeout(function() {
+    _sidebarRefreshPending = false;
+    try { loadScans(); } catch(e) {}
+  }, 2000);
+}
+
+function handleProbe(d) {
+  _probeQueue.push(d);
+  scheduleBatchFlush();
+}
+
+function handleRuleProgress(d) {
+  var id = d.rule_id || d.rule_name;
+  if (!id) return;
+  ruleMap[id] = {
+    name: d.rule_name || d.rule_id,
+    severity: d.severity || 'MEDIUM',
+    done: d.done || 0,
+    total: d.total || 1,
+    findings_count: d.findings_count || 0
+  };
+  renderRuleList();
+}
+
+function handleFinding(d) {
+  _findingQueue.push(d);
+  scheduleBatchFlush();
+}
+
+function handleLog(d) {
+  var msg = d.msg || d.message || '';
+  var feed = document.getElementById('probe-feed');
+  var span = document.createElement('span');
+  span.style.color = 'var(--muted)';
+  span.textContent = '[LOG] ' + msg;
+  feed.appendChild(span);
+  feed.appendChild(document.createTextNode('\n'));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function handleError(d) {
+  var msg = d.msg || d.message || '';
+  var feed = document.getElementById('probe-feed');
+  var span = document.createElement('span');
+  span.style.color = 'var(--red)';
+  span.textContent = '[ERROR] ' + msg;
+  feed.appendChild(span);
+  feed.appendChild(document.createTextNode('\n'));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function handlePaused(d) {
+  document.getElementById('btn-pause').style.display = 'none';
+  document.getElementById('btn-resume').style.display = '';
+  var feed = document.getElementById('probe-feed');
+  var span = document.createElement('span');
+  span.style.color = 'var(--amber)';
+  span.textContent = '[PAUSED] ' + (d.msg || 'Scan paused');
+  feed.appendChild(span);
+  feed.appendChild(document.createTextNode('\n'));
+  loadScans();
+}
+
+function handleResumed(d) {
+  document.getElementById('btn-pause').style.display = '';
+  document.getElementById('btn-resume').style.display = 'none';
+  var feed = document.getElementById('probe-feed');
+  var span = document.createElement('span');
+  span.style.color = 'var(--green)';
+  span.textContent = '[RESUMED] ' + (d.msg || 'Scan resumed');
+  feed.appendChild(span);
+  feed.appendChild(document.createTextNode('\n'));
+  loadScans();
+}
+
+function handleDone(d) {
+  doneData = d;
+  disconnectSSE();
+  markTabDone('scan');
+  markTabDone('findings');
+
+  var feed = document.getElementById('probe-feed');
+  var span = document.createElement('span');
+  span.style.cssText = 'color:var(--green);font-weight:600';
+  span.textContent = '[DONE] Scan complete. ' +
+    (d.findings_count || 0) + ' findings, ' + (d.requests_count || 0) + ' requests, ' +
+    fmtDuration(d.duration || 0);
+  feed.appendChild(span);
+  feed.appendChild(document.createTextNode('\n'));
+
+  if (d.duration) document.getElementById('scan-elapsed').textContent = fmtDuration(d.duration);
+  if (d.requests_count) document.getElementById('scan-probes').textContent = Number(d.requests_count).toLocaleString();
+
+  // Refresh scan details for full findings
+  if (activeScanId) {
+    fetch('/api/scans/' + activeScanId).then(function(r) { return r.json(); }).then(function(scan) {
+      findings = scan.findings || [];
+      renderFindings();
+      renderReport(scan);
+    });
+  }
+
+  loadScans();
+  if (currentTab === 'scan') showTab('findings');
+}
+
+// -- Crawl Table --------------------------------------------------------------
+
+function appendCrawlRow(method, url, params, source) {
+  var tbody = document.getElementById('crawl-table-body');
+  var tr = document.createElement('tr');
+
+  var methodCls = 'm-' + method;
+  var paramHtml = '';
+  if (params && params.length > 0) {
+    for (var i = 0; i < params.length; i++) {
+      var p = params[i];
+      var loc = (p.location || 'query').toLowerCase();
+      var cls = 'param-' + loc;
+      paramHtml += '<span class="param-chip ' + cls + '">' + escHtml(loc) + ':' + escHtml(p.name) + '</span>';
+    }
+  }
+
+  tr.innerHTML =
+    '<td><span class="method ' + methodCls + '">' + escHtml(method) + '</span></td>' +
+    '<td style="font-family:\'JetBrains Mono\',monospace">' + escHtml(url) + '</td>' +
+    '<td>' + paramHtml + '</td>' +
+    '<td><span class="source-tag">' + escHtml(source) + '</span></td>';
+  tbody.appendChild(tr);
+
+  // Auto-scroll
+  var wrap = tbody.parentElement.parentElement;
+  if (wrap && wrap.scrollHeight) wrap.scrollTop = wrap.scrollHeight;
+}
+
+// -- Rule Progress List -------------------------------------------------------
+
+function renderRuleList() {
+  var list = document.getElementById('rule-list');
+  var html = '';
+  var sevOrder = {CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4};
+  var keys = Object.keys(ruleMap);
+  keys.sort(function(a, b) {
+    var sa = sevOrder[(ruleMap[a].severity || '').toUpperCase()] || 3;
+    var sb = sevOrder[(ruleMap[b].severity || '').toUpperCase()] || 3;
+    return sa - sb;
+  });
+
+  for (var ki = 0; ki < keys.length; ki++) {
+    var id = keys[ki];
+    var r = ruleMap[id];
+    var sev = (r.severity || 'MEDIUM').toUpperCase();
+    var pct = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0;
+    var isActive = pct > 0 && pct < 100;
+    var barColor = pct >= 100 ? 'var(--green)' : (isActive ? 'var(--amber)' : 'var(--blue)');
+
+    var sevBg = '#1e3a5f', sevCol = '#93c5fd', sevLabel = 'MED';
+    if (sev === 'CRITICAL') { sevBg = '#7f1d1d'; sevCol = '#fca5a5'; sevLabel = 'CRIT'; }
+    else if (sev === 'HIGH') { sevBg = '#78350f'; sevCol = '#fcd34d'; sevLabel = 'HIGH'; }
+    else if (sev === 'LOW') { sevBg = '#14532d'; sevCol = '#86efac'; sevLabel = 'LOW'; }
+
+    var hitsHtml;
+    if (r.findings_count > 0) {
+      hitsHtml = '<span class="ri-hits" style="color:var(--red)">\u25cf ' + r.findings_count + '</span>';
+    } else if (pct >= 100) {
+      hitsHtml = '<span class="ri-hits" style="color:var(--green)">\u2713</span>';
+    } else {
+      hitsHtml = '<span class="ri-hits" style="color:var(--muted)">\u2014</span>';
+    }
+
+    html += '<div class="rule-item' + (isActive ? ' ri-active' : '') + '">' +
+      '<span class="ri-sev" style="background:' + sevBg + ';color:' + sevCol + '">' + sevLabel + '</span>' +
+      '<span class="ri-name">' + escHtml(r.name) + '</span>' +
+      '<div class="ri-bar"><div class="ri-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      hitsHtml + '</div>';
+  }
+  list.innerHTML = html;
+}
+
+// -- Findings Tab -------------------------------------------------------------
+
+var activeFilter = 'all';
+var activeSourceFilter = null;
+
+function renderFindings() {
+  renderFilterBar();
+  renderFindingCards();
+}
+
+function renderFilterBar() {
+  var bar = document.getElementById('filter-bar');
+  var counts = {CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, all: findings.length};
+  var sourceCounts = {rule: 0, ai: 0, authz: 0};
+  for (var i = 0; i < findings.length; i++) {
+    var f = findings[i];
+    var s = (f.severity || 'MEDIUM').toUpperCase();
+    if (counts[s] !== undefined) counts[s]++;
+    var src = (f.source || '').toLowerCase();
+    if (src === 'ai' || src === 'engine') sourceCounts.ai++;
+    else if (src === 'authz') sourceCounts.authz++;
+    else sourceCounts.rule++;
+  }
+
+  bar.innerHTML =
+    '<span style="font-size:.7em;color:var(--muted);margin-right:8px">Filter:</span>' +
+    '<button class="filter-btn' + (activeFilter === 'all' && !activeSourceFilter ? ' active' : '') + '" onclick="setFilter(\'all\')">All (' + counts.all + ')</button>' +
+    '<button class="filter-btn' + (activeFilter === 'CRITICAL' ? ' active' : '') + '" style="border-color:#7f1d1d" onclick="setFilter(\'CRITICAL\')">Critical (' + counts.CRITICAL + ')</button>' +
+    '<button class="filter-btn' + (activeFilter === 'HIGH' ? ' active' : '') + '" style="border-color:#78350f" onclick="setFilter(\'HIGH\')">High (' + counts.HIGH + ')</button>' +
+    '<button class="filter-btn' + (activeFilter === 'MEDIUM' ? ' active' : '') + '" style="border-color:#1e3a5f" onclick="setFilter(\'MEDIUM\')">Medium (' + counts.MEDIUM + ')</button>' +
+    '<button class="filter-btn' + (activeFilter === 'LOW' ? ' active' : '') + '" style="border-color:#14532d" onclick="setFilter(\'LOW\')">Low (' + counts.LOW + ')</button>' +
+    '<button class="filter-btn' + (activeSourceFilter === 'rule' ? ' active' : '') + '" onclick="setSourceFilter(\'rule\')">RULE</button>' +
+    '<button class="filter-btn' + (activeSourceFilter === 'ai' ? ' active' : '') + '" onclick="setSourceFilter(\'ai\')">AI</button>' +
+    '<button class="filter-btn' + (activeSourceFilter === 'authz' ? ' active' : '') + '" onclick="setSourceFilter(\'authz\')">AUTHZ</button>';
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  activeSourceFilter = null;
+  renderFindings();
+}
+
+function setSourceFilter(s) {
+  if (activeSourceFilter === s) { activeSourceFilter = null; }
+  else { activeSourceFilter = s; activeFilter = 'all'; }
+  renderFindings();
+}
+
+function renderFindingCards() {
+  var container = document.getElementById('findings-list');
+  if (findings.length === 0) {
+    container.innerHTML = '<div class="empty-state"><img src="/assets/brahmastra-logo.png" alt="BRAHMASTRA" style="width:140px;height:140px;opacity:.55;filter:drop-shadow(0 0 12px rgba(96,165,250,.35));margin-bottom:14px"><div class="es-title">No findings yet</div><div class="es-sub">Findings will appear here as the scan progresses</div></div>';
+    return;
+  }
+
+  var filtered = [];
+  for (var i = 0; i < findings.length; i++) {
+    var f = findings[i];
+    var sev = (f.severity || 'MEDIUM').toUpperCase();
+    var src = (f.source || '').toLowerCase();
+    var srcNorm = (src === 'ai' || src === 'engine') ? 'ai' : (src === 'authz' ? 'authz' : 'rule');
+    if (activeFilter !== 'all' && sev !== activeFilter) continue;
+    if (activeSourceFilter && srcNorm !== activeSourceFilter) continue;
+    filtered.push({f: f, idx: i});
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="es-title">No matching findings</div><div class="es-sub">Try adjusting the filters</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var fi = 0; fi < filtered.length; fi++) {
+    var item = filtered[fi];
+    var f = item.f;
+    var idx = item.idx;
+    var fid = 'finding-' + idx;
+    var sev = (f.severity || 'MEDIUM').toUpperCase();
+    var vulnType = f.vuln_type || f.type || 'Unknown';
+    var cvss = f.cvss ? 'CVSS ' + f.cvss : '';
+    var src = (f.source || 'rule').toLowerCase();
+    var srcClass = 'src-rule';
+    var srcLabel = 'RULE';
+    if (src === 'ai' || src === 'engine') { srcClass = 'src-ai'; srcLabel = 'AI'; }
+    else if (src === 'authz') { srcClass = 'src-authz'; srcLabel = 'AUTHZ'; }
+
+    var isOpen = openFindingIds[idx] === true;
+    var conf = f.confidence || 0;
+    if (conf <= 1) conf = Math.round(conf * 100); else conf = Math.round(conf);
+    var confColor = conf >= 80 ? 'var(--green)' : (conf >= 50 ? 'var(--amber)' : 'var(--red)');
+
+    var fpStatus = (f.fp_status || 'PENDING').toUpperCase();
+    var fpConf   = (typeof f.fp_confidence === 'number') ? f.fp_confidence : null;
+    var fpBadge  = renderFPBadge(fpStatus, fpConf);
+    var fpCardClass = (fpStatus === 'FALSE_POSITIVE') ? ' is-fp' : '';
+
+    html += '<div class="finding-card' + fpCardClass + '">' +
+      '<div class="finding-header" onclick="toggleFinding(' + idx + ')">' +
+      '<span class="sev sev-' + sev + '">' + escHtml(sev) + '</span>' +
+      '<span class="fh-src ' + srcClass + '">' + srcLabel + '</span>' +
+      '<span class="fh-type">' + escHtml(vulnType) + '</span>' +
+      fpBadge +
+      '<span class="fh-cvss">' + escHtml(cvss) + '</span>' +
+      '<span style="color:var(--muted)">' + (isOpen ? '\u25bc' : '\u25b6') + '</span>' +
+      '</div>';
+
+    html += '<div class="finding-body' + (isOpen ? ' open' : '') + '" id="' + fid + '">';
+
+    // Confidence
+    html += '<div class="fb-section"><div class="confidence-bar">' +
+      '<span class="fb-label" style="font-size:.7em;color:var(--muted)">Confidence</span>' +
+      '<div class="conf-track"><div class="conf-fill" style="width:' + conf + '%;background:' + confColor + '"></div></div>' +
+      '<span class="conf-label" style="color:' + confColor + '">' + conf + '%</span></div></div>';
+
+    // Target
+    if (f.url) {
+      html += '<div class="fb-section"><div class="fb-label">Target</div>' +
+        '<div class="fb-value" style="font-family:\'JetBrains Mono\',monospace">' +
+        escHtml(f.url) + (f.parameter ? ' &mdash; parameter: <strong style="color:var(--amber)">' + escHtml(f.parameter) + '</strong>' : '') +
+        '</div></div>';
+    }
+
+    // Evidence
+    if (f.evidence) {
+      html += '<div class="fb-section"><div class="fb-label">Evidence</div>' +
+        '<div class="fb-value">' + escHtml(f.evidence) + '</div></div>';
+    }
+
+    // Risk Analysis
+    html += '<div class="fb-section"><div class="fb-label">Risk Analysis</div><div class="risk-box">';
+    html += '<p><strong>Severity:</strong> ' + escHtml(sev) + (f.cvss ? ' (CVSS ' + escHtml(String(f.cvss)) + ')' : '') + '</p>';
+    if (f.waf_bypassed) {
+      html += '<p><strong>WAF Bypass:</strong> Yes' + (f.bypass_method ? ' &mdash; ' + escHtml(f.bypass_method) : '') + '</p>';
+    }
+    html += '</div></div>';
+
+    // HTTP Trace
+    if (f.http_trace) {
+      var trace = f.http_trace;
+      if (typeof trace === 'string') {
+        html += '<div class="fb-section"><div class="http-label">HTTP Trace (Proof)</div>' +
+          '<div class="http-block">' + highlightPayloadInTrace(trace, f.payload) + '</div></div>';
+      } else {
+        if (trace.request) {
+          html += '<div class="fb-section"><div class="http-label">Request (Proof)</div>' +
+            '<div class="http-block">' + highlightPayloadInTrace(trace.request, f.payload) + '</div></div>';
+        }
+        if (trace.response) {
+          html += '<div class="fb-section"><div class="http-label">Response (Evidence)</div>' +
+            '<div class="http-block">' + highlightPayloadInTrace(trace.response, f.evidence) + '</div></div>';
+        }
+      }
+    }
+
+    // Payload
+    if (f.payload) {
+      html += '<div class="fb-section"><div class="fb-label">Payload Used</div>' +
+        '<div class="http-block" style="color:var(--amber)">' + escHtml(f.payload) + '</div></div>';
+    }
+
+    // AI Reasoning
+    if (f.think_trace) {
+      html += '<div class="fb-section"><div class="fb-label">AI Reasoning</div>' +
+        '<div class="think-box">' + escHtml(f.think_trace) + '</div></div>';
+    }
+
+    // FP Analysis (post-scan AI verdict + retest probes)
+    if (f.fp_analysis) {
+      html += '<div class="fb-section"><div class="fb-label">False Positive Analysis</div>' +
+        renderFPDetail(fpStatus, fpConf, f.fp_analysis, f.fp_retest_count) +
+        '</div>';
+    }
+
+    // Remediation
+    if (f.remediation) {
+      html += '<div class="fb-section"><div class="fb-label">Remediation</div>' +
+        '<div class="remediation-box">' + escHtml(f.remediation) + '</div></div>';
+    }
+
+    html += '</div></div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleFinding(idx) {
+  if (openFindingIds[idx]) { delete openFindingIds[idx]; }
+  else { openFindingIds[idx] = true; }
+  renderFindingCards();
+}
+
+// -- False-Positive analysis helpers ----------------------------------------
+//
+// Pure-string renderers used by renderFindingCards() above and by the SSE
+// handlers below. fp_status comes from the DB column populated by the
+// post-scan FPAnalyzer phase. Possible values:
+//   PENDING        — phase hasn't reached this finding yet
+//   CONFIRMED      — AI + retest probes confirm a real vuln
+//   FALSE_POSITIVE — AI says benign and retest probes did not reproduce
+//   INCONCLUSIVE   — mixed signals / AI unavailable / network errors
+
+function renderFPBadge(status, conf) {
+  var s = String(status || 'PENDING').toUpperCase();
+  var labelMap = {
+    'CONFIRMED':       '\u2713 CONFIRMED',
+    'FALSE_POSITIVE':  '\u2717 FALSE POSITIVE',
+    'INCONCLUSIVE':    '? INCONCLUSIVE',
+    'PENDING':         '\u23f3 PENDING'
+  };
+  var label = labelMap[s] || ('\u23f3 ' + s);
+  if (typeof conf === 'number' && conf > 0 && s !== 'PENDING') {
+    label += ' ' + conf + '%';
+  }
+  var cls = 'fp-' + s.toLowerCase();
+  return '<span class="fp-badge ' + cls + '">' + escHtml(label) + '</span>';
+}
+
+function renderFPDetail(status, conf, analysis, retestCount) {
+  if (!analysis) return '';
+  var s = String(status || 'INCONCLUSIVE').toUpperCase();
+  var boxCls = 'fp-detail-box';
+  if (s === 'CONFIRMED')         boxCls += ' fp-detail-confirmed';
+  else if (s === 'INCONCLUSIVE') boxCls += ' fp-detail-inconclusive';
+
+  var html = '<div class="' + boxCls + '">';
+
+  var verdict = analysis.ai_verdict || 'unknown';
+  var aiConf  = (typeof analysis.ai_confidence === 'number')
+                  ? analysis.ai_confidence
+                  : 0;
+  var probesCount = retestCount || (analysis.probes ? analysis.probes.length : 0);
+
+  html += '<div class="fpd-reason">' + escHtml(analysis.final_reason || '(no reason)') + '</div>';
+  html += '<div style="font-size:.9em;color:var(--muted)">' +
+            'AI verdict: <strong style="color:var(--text)">' + escHtml(verdict) + '</strong>' +
+            ' &middot; AI confidence: <strong style="color:var(--text)">' + aiConf + '%</strong>' +
+            ' &middot; Retest probes: <strong style="color:var(--text)">' + probesCount + '</strong>' +
+          '</div>';
+
+  if (analysis.ai_reason) {
+    html += '<div style="margin-top:6px;font-size:.9em">' +
+              '<span style="color:var(--muted)">Reason: </span>' +
+              escHtml(analysis.ai_reason) +
+            '</div>';
+  }
+
+  if (analysis.probes && analysis.probes.length) {
+    html += '<div class="fpd-probes">';
+    for (var p = 0; p < analysis.probes.length; p++) {
+      var pr = analysis.probes[p];
+      var isNeg = !!pr.is_negative_control;
+      var hit   = !!pr.matched_indicator;
+      var probeCls = 'fpd-probe ' + (isNeg ? 'neg' : 'pos') + ' ' + (hit ? 'hit' : 'miss');
+      var line = (isNeg ? '[neg] ' : '[pos] ') +
+                 (pr.error
+                    ? 'ERROR ' + (pr.error || '')
+                    : ((hit ? '\u2713 HIT  ' : '\u2717 miss ') +
+                       'status=' + (pr.status || '?') +
+                       ' len=' + (pr.len || 0) +
+                       ' ' + (pr.ms || 0) + 'ms')) +
+                 '  payload=' + String(pr.payload || '').slice(0, 80);
+      html += '<div class="' + probeCls + '">' + escHtml(line) + '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (analysis.ai_think) {
+    html += '<div class="fpd-think">' + escHtml(analysis.ai_think) + '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// -- FP phase progress bar (rendered above the findings list) --------------
+
+function ensureFPProgressBar() {
+  var bar = document.getElementById('fp-progress-wrap');
+  if (bar) return bar;
+  var host = document.getElementById('findings-list');
+  if (!host || !host.parentNode) return null;
+  bar = document.createElement('div');
+  bar.id = 'fp-progress-wrap';
+  bar.className = 'fp-progress-wrap';
+  bar.innerHTML =
+    '<span class="fpw-label">False-Positive Analysis</span>' +
+    '<div class="fpw-track"><div class="fpw-fill" id="fp-progress-fill" style="width:0%"></div></div>' +
+    '<span class="fpw-count" id="fp-progress-count">0/0</span>';
+  host.parentNode.insertBefore(bar, host);
+  return bar;
+}
+
+function showFPProgressBar(total) {
+  var bar = ensureFPProgressBar();
+  if (!bar) return;
+  bar.classList.add('active');
+  var fill = document.getElementById('fp-progress-fill');
+  var cnt  = document.getElementById('fp-progress-count');
+  if (fill) fill.style.width = '0%';
+  if (cnt)  cnt.textContent = '0/' + (total || 0);
+}
+
+function updateFPProgressBar(index, total) {
+  var fill = document.getElementById('fp-progress-fill');
+  var cnt  = document.getElementById('fp-progress-count');
+  if (total > 0 && fill) fill.style.width = ((index / total) * 100).toFixed(1) + '%';
+  if (cnt) cnt.textContent = index + '/' + total;
+}
+
+function hideFPProgressBar() {
+  var bar = document.getElementById('fp-progress-wrap');
+  if (bar) bar.classList.remove('active');
+}
+
+// -- SSE handlers for the post-scan FP phase --------------------------------
+
+function handleFPAnalysisStart(d) {
+  var total = d.total || 0;
+  showFPProgressBar(total);
+  handleLog({
+    msg:   'False-Positive Analysis started \u2014 ' + total + ' finding(s), up to ' +
+           (d.max_probes || 5) + ' retest probes each',
+    level: 'info'
+  });
+}
+
+function handleFPAnalysisFinding(d) {
+  updateFPProgressBar(d.index || 0, d.total || 0);
+
+  // Patch the in-memory finding so the next renderFindingCards() shows
+  // the new badge without waiting for a full reload from /api/scans.
+  var fid = d.finding_id;
+  for (var i = 0; i < findings.length; i++) {
+    if (findings[i].id === fid) {
+      findings[i].fp_status     = d.fp_status;
+      findings[i].fp_confidence = d.fp_confidence;
+      findings[i].fp_analysis = findings[i].fp_analysis || {};
+      findings[i].fp_analysis.final_reason = d.reason || findings[i].fp_analysis.final_reason || '';
+      break;
+    }
+  }
+  renderFindingCards();
+}
+
+function handleFPAnalysisDone(d) {
+  hideFPProgressBar();
+  if (d && d.error) {
+    handleLog({ msg: 'FP analysis aborted: ' + d.error, level: 'warn' });
+    return;
+  }
+  var msg = 'FP analysis complete \u2014 ' +
+            (d.confirmed || 0) + ' confirmed, ' +
+            (d.false_positive || 0) + ' false positive, ' +
+            (d.inconclusive || 0) + ' inconclusive' +
+            ((d.errors || 0) ? (' (' + d.errors + ' errors)') : '');
+  handleLog({ msg: msg, level: 'success' });
+
+  // Refresh findings from /api/scans so every card has the freshly
+  // committed fp_status / fp_confidence / fp_analysis JSONB. Live SSE
+  // patching above is best-effort — it can miss findings whose DB id
+  // wasn't yet known to the dashboard at patch time (engine emits
+  // findings to SSE without ids; ids only show up via /api/scans).
+  if (activeScanId) {
+    fetch('/api/scans/' + activeScanId).then(function(r) { return r.json(); }).then(function(scan) {
+      findings = scan.findings || [];
+      renderFindings();
+      renderReport(scan);
+    });
+  }
+}
+
+function highlightPayloadInTrace(text, highlight) {
+  var safe = escHtml(text);
+  if (!highlight) return safe;
+  var hlSafe = escHtml(highlight);
+  if (hlSafe && safe.indexOf(hlSafe) !== -1) {
+    return safe.split(hlSafe).join('<span class="hl">' + hlSafe + '</span>');
+  }
+  return safe;
+}
+
+// -- Report Tab ---------------------------------------------------------------
+
+function renderReport(scan) {
+  if (!scan) return;
+  var sum = scan.summary || {};
+  var c = sum.CRITICAL || 0, h = sum.HIGH || 0, m = sum.MEDIUM || 0, lo = sum.LOW || 0;
+  document.getElementById('rpt-crit').textContent = c;
+  document.getElementById('rpt-high').textContent = h;
+  document.getElementById('rpt-med').textContent = m;
+  document.getElementById('rpt-low').textContent = lo;
+
+  var total = c * 10 + h * 7 + m * 4 + lo * 1;
+  var maxPossible = (c + h + m + lo) * 10;
+  var score = maxPossible > 0 ? ((total / maxPossible) * 10).toFixed(1) : '--';
+  document.getElementById('rpt-score').textContent = score;
+
+  document.getElementById('rpt-target').textContent = scan.target || '--';
+  document.getElementById('rpt-profile').textContent = scan.scan_profile || '--';
+  document.getElementById('rpt-auth').textContent = scan.auth_type || 'none';
+  document.getElementById('rpt-ai').textContent = scan.ai_mode || scan.model_backend || '--';
+  document.getElementById('rpt-started').textContent = fmtDate(scan.started_at);
+  document.getElementById('rpt-duration').textContent = doneData ? fmtDuration(doneData.duration) : '--';
+  document.getElementById('rpt-endpoints').textContent = crawlEndpoints.length > 0 ? crawlEndpoints.length + ' discovered' : '--';
+  document.getElementById('rpt-requests').textContent = doneData ? Number(doneData.requests_count || 0).toLocaleString() + ' total' : '--';
+}
+
+function renderReportCounts() {
+  var c = 0, h = 0, m = 0, lo = 0;
+  for (var i = 0; i < findings.length; i++) {
+    var s = (findings[i].severity || 'MEDIUM').toUpperCase();
+    if (s === 'CRITICAL') c++;
+    else if (s === 'HIGH') h++;
+    else if (s === 'MEDIUM') m++;
+    else if (s === 'LOW') lo++;
+  }
+  document.getElementById('rpt-crit').textContent = c;
+  document.getElementById('rpt-high').textContent = h;
+  document.getElementById('rpt-med').textContent = m;
+  document.getElementById('rpt-low').textContent = lo;
+  var total = c * 10 + h * 7 + m * 4 + lo * 1;
+  var maxPossible = (c + h + m + lo) * 10;
+  document.getElementById('rpt-score').textContent = maxPossible > 0 ? ((total / maxPossible) * 10).toFixed(1) : '--';
+}
+
+// -- Export -------------------------------------------------------------------
+
+function exportReport(format) {
+  if (!activeScanId) { alert('No scan selected'); return; }
+  fetch('/api/scans/' + activeScanId).then(function(r) { return r.json(); }).then(function(scan) {
+    if (format === 'json') {
+      downloadBlob(JSON.stringify(scan, null, 2), 'brahmastra-report-' + activeScanId + '.json', 'application/json');
+    } else if (format === 'html') {
+      var h = buildHtmlReport(scan);
+      downloadBlob(h, 'brahmastra-report-' + activeScanId + '.html', 'text/html');
+    } else if (format === 'sarif') {
+      var sarif = buildSarif(scan);
+      downloadBlob(JSON.stringify(sarif, null, 2), 'brahmastra-report-' + activeScanId + '.sarif', 'application/json');
+    } else if (format === 'pdf') {
+      var h = buildHtmlReport(scan);
+      var w = window.open('', '_blank');
+      w.document.write(h);
+      w.document.close();
+      setTimeout(function() { w.print(); }, 500);
+    }
+  });
+}
+
+function downloadBlob(content, filename, mime) {
+  var blob = new Blob([content], {type: mime});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function buildHtmlReport(scan) {
+  var sum = scan.summary || {};
+  var fl = scan.findings || [];
+  var out = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>BRAHMASTRA Report - ' + escHtml(scan.target) + '</title>' +
+    '<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:20px;background:#111;color:#eee}' +
+    'h1{color:#3b82f6}h2{color:#a1a1aa;margin-top:32px;border-bottom:1px solid #333;padding-bottom:8px}' +
+    'table{width:100%;border-collapse:collapse;margin:16px 0}td,th{padding:8px 12px;border:1px solid #333;text-align:left;font-size:14px}' +
+    'th{background:#222}.crit{color:#fca5a5}.high{color:#fcd34d}.med{color:#93c5fd}.low{color:#86efac}' +
+    '.card{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin:12px 0}' +
+    'pre{background:#0a0a0a;padding:10px;border-radius:6px;overflow-x:auto;font-size:12px;white-space:pre-wrap}' +
+    '.sev-badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:700}</style></head><body>' +
+    '<h1>BRAHMASTRA DAST Report</h1>' +
+    '<table><tr><td><strong>Target</strong></td><td>' + escHtml(scan.target) + '</td></tr>' +
+    '<tr><td><strong>Profile</strong></td><td>' + escHtml(scan.scan_profile || '--') + '</td></tr>' +
+    '<tr><td><strong>Auth</strong></td><td>' + escHtml(scan.auth_type || 'none') + '</td></tr>' +
+    '<tr><td><strong>Started</strong></td><td>' + escHtml(fmtDate(scan.started_at)) + '</td></tr></table>' +
+    '<h2>Summary</h2>' +
+    '<table><tr><th class="crit">Critical</th><th class="high">High</th><th class="med">Medium</th><th class="low">Low</th></tr>' +
+    '<tr><td class="crit">' + (sum.CRITICAL || 0) + '</td><td class="high">' + (sum.HIGH || 0) + '</td><td class="med">' + (sum.MEDIUM || 0) + '</td><td class="low">' + (sum.LOW || 0) + '</td></tr></table>' +
+    '<h2>Findings</h2>';
+  for (var i = 0; i < fl.length; i++) {
+    var fi = fl[i];
+    out += '<div class="card"><strong>' + escHtml((fi.severity || '').toUpperCase()) + '</strong> &mdash; ' + escHtml(fi.vuln_type || fi.type || '') +
+      '<br><strong>URL:</strong> ' + escHtml(fi.url || '') + (fi.parameter ? ' | <strong>Param:</strong> ' + escHtml(fi.parameter) : '') +
+      (fi.cvss ? ' | <strong>CVSS:</strong> ' + escHtml(String(fi.cvss)) : '') +
+      (fi.payload ? '<br><strong>Payload:</strong> <code>' + escHtml(fi.payload) + '</code>' : '') +
+      (fi.evidence ? '<br><strong>Evidence:</strong> ' + escHtml(fi.evidence) : '') +
+      (fi.remediation ? '<br><strong>Remediation:</strong> ' + escHtml(fi.remediation) : '') +
+      '</div>';
+  }
+  out += '</body></html>';
+  return out;
+}
+
+function buildSarif(scan) {
+  var fl = scan.findings || [];
+  var results = [];
+  for (var i = 0; i < fl.length; i++) {
+    var f = fl[i];
+    var level = 'warning';
+    var s = (f.severity || '').toUpperCase();
+    if (s === 'CRITICAL' || s === 'HIGH') level = 'error';
+    else if (s === 'LOW') level = 'note';
+    results.push({
+      ruleId: f.vuln_type || f.type || 'unknown',
+      level: level,
+      message: {text: (f.vuln_type || f.type || '') + ' at ' + (f.url || '') + (f.parameter ? ' [' + f.parameter + ']' : '')},
+      locations: [{physicalLocation: {artifactLocation: {uri: f.url || ''}}}]
+    });
+  }
+  return {
+    version: '2.1.0',
+    '$schema': 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+    runs: [{
+      tool: {driver: {name: 'BRAHMASTRA', version: '2.0.0', informationUri: 'https://github.com/brahmastra-dast'}},
+      results: results
+    }]
+  };
+}
+
+// -- Auth Card Selection ------------------------------------------------------
+
+var selectedAuth = 'none';
+
+document.getElementById('auth-cards').addEventListener('click', function(e) {
+  var card = e.target.closest('.auth-card');
+  if (!card) return;
+  var cards = document.querySelectorAll('.auth-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+  card.classList.add('selected');
+  selectedAuth = card.dataset.auth;
+  renderAuthFields();
+});
+
+function renderAuthFields() {
+  var el = document.getElementById('auth-fields');
+  el.className = 'auth-fields show';
+  var html = '';
+  switch (selectedAuth) {
+    case 'none':
+      html = '<p style="font-size:.7em;color:var(--muted);margin-bottom:8px">No authentication -- scanning as anonymous user</p>';
+      break;
+    case 'basic':
+      html = '<div class="form-row"><div class="form-group"><label>Username</label><input type="text" id="auth-username" placeholder="admin"></div>' +
+        '<div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="password"></div></div>';
+      break;
+    case 'bearer':
+      html = '<div class="form-group"><label>Bearer Token / JWT</label><input type="text" id="auth-token" placeholder="eyJhbGciOi..."></div>';
+      break;
+    case 'form':
+      html = '<div class="form-row"><div class="form-group"><label>Login URL</label><input type="text" id="auth-login-url" placeholder="https://target.com/login"></div></div>' +
+        '<div class="form-row"><div class="form-group"><label>Username</label><input type="text" id="auth-username" placeholder="admin"></div>' +
+        '<div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="password"></div></div>' +
+        '<div class="form-row"><div class="form-group"><label>Username Field Name</label><input type="text" id="auth-user-field" placeholder="username" value="username"></div>' +
+        '<div class="form-group"><label>Password Field Name</label><input type="text" id="auth-pass-field" placeholder="password" value="password"></div></div>';
+      break;
+    case 'cookie':
+      html = '<div class="form-group"><label>Cookie String</label><input type="text" id="auth-cookie" placeholder="session=abc123; token=xyz"></div>';
+      break;
+    case 'apikey':
+      html = '<div class="form-row"><div class="form-group"><label>Header Name</label><input type="text" id="auth-header-name" placeholder="X-API-Key" value="X-API-Key"></div>' +
+        '<div class="form-group"><label>Key Value</label><input type="text" id="auth-header-value" placeholder="your-api-key-here"></div></div>';
+      break;
+    case 'oauth2':
+      html = '<div class="form-group"><label>Access Token</label><input type="text" id="auth-token" placeholder="OAuth2 access token"></div>' +
+        '<div class="form-row"><div class="form-group"><label>Token URL (for refresh)</label><input type="text" id="auth-token-url" placeholder="https://auth.example.com/token"></div></div>' +
+        '<div class="form-row"><div class="form-group"><label>Client ID</label><input type="text" id="auth-client-id" placeholder="client_id"></div>' +
+        '<div class="form-group"><label>Client Secret</label><input type="password" id="auth-client-secret" placeholder="client_secret"></div></div>';
+      break;
+    case 'custom_header':
+      html = '<div class="form-row"><div class="form-group"><label>Header Name</label><input type="text" id="auth-header-name" placeholder="X-Custom-Auth"></div>' +
+        '<div class="form-group"><label>Header Value</label><input type="text" id="auth-header-value" placeholder="custom-value"></div></div>';
+      break;
+  }
+  el.innerHTML = html;
+}
+
+// -- Profile Card Selection ---------------------------------------------------
+
+var selectedProfile = 'full';
+
+document.getElementById('profile-cards').addEventListener('click', function(e) {
+  var card = e.target.closest('.profile-card');
+  if (!card) return;
+  var cards = document.querySelectorAll('.profile-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+  card.classList.add('selected');
+  selectedProfile = card.dataset.profile;
+});
+
+// -- Source Type Toggle -------------------------------------------------------
+
+document.getElementById('cfg-source-type').addEventListener('change', function() {
+  document.getElementById('cfg-source-content-wrap').style.display = this.value === 'url' ? 'none' : '';
+});
+
+// -- Authz Checkbox -----------------------------------------------------------
+
+document.getElementById('cfg-authz').addEventListener('change', function() {
+  document.getElementById('cfg-second-auth-section').style.display = this.checked ? '' : 'none';
+});
+
+// -- AI Mode select -----------------------------------------------------------
+
+document.getElementById('cfg-ai-mode').addEventListener('change', function() {
+  var b = backends[this.value];
+  document.getElementById('cfg-apikey-wrap').style.display = (b && b.needs_key) ? '' : 'none';
+});
+
+// -- Launch Scan --------------------------------------------------------------
+
+document.getElementById('btn-launch').addEventListener('click', function() {
+  var target = document.getElementById('cfg-target').value.trim();
+  if (!target) { alert('Please enter a target URL'); return; }
+
+  var btn = document.getElementById('btn-launch');
+  btn.disabled = true;
+  btn.textContent = 'Launching...';
+
+  var authConfig = buildAuthConfig();
+  var secondAuth = buildSecondAuthConfig();
+  var aiMode = document.getElementById('cfg-ai-mode').value;
+  var apiKey = document.getElementById('cfg-apikey').value.trim();
+
+  var body = {
+    target: target,
+    auth_type: selectedAuth,
+    scan_profile: selectedProfile,
+    use_engine: true,
+    ai_mode: aiMode,
+    source_type: document.getElementById('cfg-source-type').value,
+    source_content: document.getElementById('cfg-source-content').value,
+    authz_testing: document.getElementById('cfg-authz').checked,
+    scan_depth: parseInt(document.getElementById('cfg-depth').value, 10),
+    auth_config_full: authConfig,
+    second_auth_config: secondAuth,
+    api_key: apiKey,
+    model_backend: aiMode
+  };
+
+  fetch('/api/scans', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    btn.disabled = false;
+    btn.textContent = 'Launch Scan';
+    if (data.scan_id) {
+      loadScans().then(function() { selectScan(data.scan_id); });
+    } else {
+      alert('Failed to create scan: ' + JSON.stringify(data));
+    }
+  }).catch(function(e) {
+    btn.disabled = false;
+    btn.textContent = 'Launch Scan';
+    alert('Error: ' + e.message);
+  });
+});
+
+function buildAuthConfig() {
+  var cfg = {auth_type: selectedAuth};
+  var el;
+  switch (selectedAuth) {
+    case 'basic':
+      el = document.getElementById('auth-username');
+      cfg.username = el ? el.value : '';
+      el = document.getElementById('auth-password');
+      cfg.password = el ? el.value : '';
+      break;
+    case 'bearer':
+      el = document.getElementById('auth-token');
+      cfg.token = el ? el.value : '';
+      break;
+    case 'form':
+      el = document.getElementById('auth-login-url');
+      cfg.login_url = el ? el.value : '';
+      el = document.getElementById('auth-username');
+      cfg.username = el ? el.value : '';
+      el = document.getElementById('auth-password');
+      cfg.password = el ? el.value : '';
+      el = document.getElementById('auth-user-field');
+      cfg.username_field = el ? el.value : 'username';
+      el = document.getElementById('auth-pass-field');
+      cfg.password_field = el ? el.value : 'password';
+      break;
+    case 'cookie':
+      el = document.getElementById('auth-cookie');
+      cfg.cookie = el ? el.value : '';
+      break;
+    case 'apikey':
+    case 'custom_header':
+      el = document.getElementById('auth-header-name');
+      cfg.header_name = el ? el.value : '';
+      el = document.getElementById('auth-header-value');
+      cfg.header_value = el ? el.value : '';
+      break;
+    case 'oauth2':
+      el = document.getElementById('auth-token');
+      cfg.token = el ? el.value : '';
+      el = document.getElementById('auth-token-url');
+      cfg.token_url = el ? el.value : '';
+      el = document.getElementById('auth-client-id');
+      cfg.client_id = el ? el.value : '';
+      el = document.getElementById('auth-client-secret');
+      cfg.client_secret = el ? el.value : '';
+      break;
+  }
+  return cfg;
+}
+
+function buildSecondAuthConfig() {
+  if (!document.getElementById('cfg-authz').checked) return {};
+  var type = document.getElementById('cfg-second-auth-type').value;
+  if (type === 'none') return {};
+  return {
+    auth_type: type,
+    token: document.getElementById('cfg-second-auth-value').value || ''
+  };
+}
+
+// -- Scan Controls ------------------------------------------------------------
+
+function pauseScan() {
+  if (!activeScanId) return;
+  fetch('/api/scans/' + activeScanId + '/pause', {method: 'POST'});
+}
+
+function resumeScan() {
+  if (!activeScanId) return;
+  fetch('/api/scans/' + activeScanId + '/resume', {method: 'POST'});
+}
+
+function stopScan() {
+  if (!activeScanId) return;
+  if (!confirm('Stop this scan?')) return;
+  fetch('/api/scans/' + activeScanId + '/stop', {method: 'POST'});
+}
+
+// -- New Scan Button ----------------------------------------------------------
+
+document.getElementById('btn-new-scan').addEventListener('click', function() {
+  activeScanId = null;
+  renderSidebar();
+  disconnectSSE();
+  resetLiveState();
+  clearTabDone();
+  showTab('configure');
+  document.getElementById('cfg-target').value = '';
+  document.getElementById('cfg-source-content').value = '';
+});
+
+// -- Init ---------------------------------------------------------------------
+
+(function init() {
+  checkHealth();
+  loadScans().then(function() {
+    // Auto-select first running scan, or first scan
+    var running = null;
+    for (var i = 0; i < scans.length; i++) {
+      if (scans[i].status === 'running' || scans[i].status === 'paused') { running = scans[i]; break; }
+    }
+    if (running) {
+      selectScan(running.id);
+    } else if (scans.length > 0) {
+      selectScan(scans[0].id);
+    }
+  });
+
+  // Periodic refresh
+  setInterval(checkHealth, 30000);
+  setInterval(function() { if (!eventSource) loadScans(); }, 10000);
+})();
+</script>
+</body>
+</html>
