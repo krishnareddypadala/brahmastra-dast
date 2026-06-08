@@ -42,67 +42,89 @@ On the [public 6-suite benchmark](https://huggingface.co/datasets/Krishnapadala5
 
 ## Quick Start
 
-### 1. Install the model
+You have two equally supported deployment paths. Pick whichever matches your environment.
+
+### Choose your path
+
+| | **Path A: Cloud AI** | **Path B: Local AI** |
+|---|---|---|
+| **Time to first scan** | 10-15 min | 60-90 min |
+| **GPU required?** | No | Yes (24 GB+ VRAM) |
+| **Cost per scan** | $0.05 - $0.50 (per provider rates) | $0 |
+| **Privacy** | scan data sent to cloud | fully on-prem |
+| **AI backend** | Gemini / Claude / GPT-4o | BRAHMASTRA 0.3 (local Ollama) |
+| **Free API key available?** | Yes (Google Gemini Flash) | n/a |
+
+**Tip**: start with **Path A** to confirm the scanner works on your environment in 15 minutes; upgrade to **Path B** later for privacy and zero-cost production use. Both paths can coexist; pick per scan from the dashboard dropdown.
+
+---
+
+### Path A: Cloud AI (no GPU needed)
 
 ```bash
-# Pull the GGUF model from Hugging Face
-huggingface-cli download Krishnapadala55/brahmastra-0.3-GGUF \
-  brahmastra-v3.Q4_K_M.gguf --local-dir ~/
-
-# Register with Ollama
-cat > ~/brahmastra-v3-Modelfile <<'EOF'
-FROM /home/<you>/brahmastra-v3.Q4_K_M.gguf
-PARAMETER temperature 0.6
-PARAMETER top_p 0.95
-PARAMETER num_ctx 4096
-SYSTEM """You are BRAHMASTRA, an elite AI-powered DAST security scanner. Use <think>...</think> to reason before each response. Be precise -- only confirm vulnerabilities with clear evidence."""
-EOF
-
-ollama create brahmastra:0.3 -f ~/brahmastra-v3-Modelfile
-```
-
-### 2. Install the scanner
-
-```bash
+# 1. Install dependencies + scanner
+sudo apt install -y python3 python3-venv postgresql postgresql-contrib git
 git clone https://github.com/krishnareddypadala/brahmastra-dast.git
 cd brahmastra-dast
-
-python3 -m venv ~/brahmastra-env
-source ~/brahmastra-env/bin/activate
+python3 -m venv ~/brahmastra-env && source ~/brahmastra-env/bin/activate
 pip install -r requirements.txt
 
-# Set up Postgres for scan history
+# 2. Postgres
+sudo systemctl start postgresql
 sudo -u postgres createuser brahmastra
 sudo -u postgres psql -c "ALTER USER brahmastra WITH PASSWORD 'brahmastra';"
 sudo -u postgres createdb -O brahmastra brahmastra
 
-# Run migrations
-python3 -m db.migrate
-```
-
-### 3. Launch
-
-```bash
-# Pre-warm the model in VRAM (optional but speeds up first scan)
-curl -s http://localhost:11434/api/generate \
-  -d '{"model":"brahmastra:0.3","prompt":"warm","keep_alive":-1,"stream":false}' > /dev/null
-
-# Start the DAST server
+# 3. Launch
 python3 -m uvicorn server.api:app --host 0.0.0.0 --port 8888
 ```
 
-Open your browser at `http://localhost:8888` and launch a scan.
+Open `http://localhost:8888`, select **Gemini 2.5 Flash** (or Claude / OpenAI) in the AI Mode dropdown, paste a free [Google AI Studio](https://aistudio.google.com/apikey) key in the field that appears, and launch your first scan.
+
+---
+
+### Path B: Local AI (BRAHMASTRA 0.3 on Ollama)
+
+Steps 1-3 above PLUS:
+
+```bash
+# 4. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 5. Pull the BRAHMASTRA 0.3 GGUF from Hugging Face (~19 GB)
+pip install huggingface_hub
+huggingface-cli download Krishnapadala55/brahmastra-0.3-GGUF \
+  brahmastra-v3.Q4_K_M.gguf --local-dir ~/
+
+# 6. Register the model in Ollama
+cat > ~/brahmastra-v3-Modelfile <<EOF
+FROM ~/brahmastra-v3.Q4_K_M.gguf
+PARAMETER temperature 0.6
+PARAMETER top_p 0.95
+PARAMETER num_ctx 4096
+SYSTEM """You are BRAHMASTRA, an elite AI-powered DAST security scanner. Use <think>...</think> to reason before each response. Be precise - only confirm vulnerabilities with clear evidence."""
+EOF
+ollama create brahmastra:0.3 -f ~/brahmastra-v3-Modelfile
+
+# 7. Pre-warm (loads 19 GB into VRAM, future scans have zero cold-start)
+curl -s http://localhost:11434/api/generate \
+  -d '{"model":"brahmastra:0.3","prompt":"warm","keep_alive":-1,"stream":false}' > /dev/null
+```
+
+Then select **BRAHMASTRA 0.3** in the dashboard dropdown. No API key needed.
+
+---
 
 ### Hardware requirements
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| GPU (for local AI) | RTX 3090 / 4090 (24 GB VRAM) | RTX A5000 / 5090 / PRO 5000 Blackwell (32+ GB VRAM) |
-| RAM | 16 GB | 32 GB |
-| Disk | 30 GB (model + scan history) | 100 GB+ |
-| Network | needs target reachability only | -- |
+| Component | Path A (Cloud) | Path B (Local) |
+|-----------|----------------|----------------|
+| GPU | None | RTX 3090 / 4090 (24 GB VRAM) minimum |
+| RAM | 8 GB | 16 GB minimum, 32 GB recommended |
+| Disk | 5 GB | 40 GB |
+| Network | outbound HTTPS + target reach | outbound for model download, then offline-capable |
 
-**No GPU?** Run the scanner pointed at Gemini / Claude / OpenAI instead. See [Configuration](#configuration).
+**Full setup guide**, including production hardening, Docker, troubleshooting, and uninstall, is in **[SETUP.md](SETUP.md)**.
 
 ---
 
