@@ -1,0 +1,40 @@
+name: gitleaks
+
+# Run secret scanning on every push, every pull request, and weekly on a schedule.
+# Fails the build if any secret is detected that is not in .gitleaks.toml allowlist.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly scan at 06:00 UTC every Monday (catches secrets from new dependencies, etc.)
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}  # also allow manual trigger from the Actions tab
+
+permissions:
+  contents: read
+  pull-requests: write   # gitleaks-action can comment on PRs with findings
+
+jobs:
+  scan:
+    name: Scan repository for secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # scan all commits, not just the latest
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          # GITLEAKS_LICENSE is only required for org accounts. Personal accounts
+          # use the action for free. If you ever move this repo into a GitHub
+          # organisation, register at gitleaks.io and add the license as a secret.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          GITLEAKS_ENABLE_SUMMARY: true
