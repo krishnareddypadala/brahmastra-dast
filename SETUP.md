@@ -403,6 +403,17 @@ http://<your-server-ip>:8888
 
 The AI Mode dropdown shows every backend the scanner knows about. Backends with grey "offline" indicators cannot be selected; backends marked "needs API key" will reveal a key field when chosen.
 
+### Themes (appearance)
+
+Click the gear icon (top-right of the header) to open the Appearance panel and pick one of four themes:
+
+- **Midnight** - default deep dark slate with blue accent (best for low-light demos).
+- **Aqua** - white background with light-blue accent (best for projector / classroom demos, screenshots in light reports).
+- **Ocean** - deep navy / cyan dark variant.
+- **Solarized** - warm cream low-eye-strain light variant.
+
+Tick **Follow OS dark/light preference** to have the dashboard pick Aqua when your OS is in light mode and Midnight when it is in dark mode. The choice persists in `localStorage` (key `brahmastra_theme`) per browser.
+
 ---
 
 ## Run your first scan
